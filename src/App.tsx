@@ -4,6 +4,7 @@ import { QuickClockInOut } from './components/QuickClockInOut';
 import { MonthlyCalendarView } from './components/MonthlyCalendarView';
 import { EmployeeManagerModal } from './components/EmployeeManagerModal';
 import { SettingsModal } from './components/SettingsModal';
+import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { attendanceService } from './services/attendanceService';
 import type { SystemSettings, UserProfile } from './types/attendance';
 import { Clock, Calendar, Users, Plus } from 'lucide-react';
@@ -177,6 +178,9 @@ export function App() {
         onClose={() => setIsSettingsOpen(false)}
         onSaved={(newSettings) => setSettings(newSettings)}
       />
+
+      {/* PWA Install Floating Banner & Guide */}
+      <PwaInstallPrompt />
     </div>
   );
 }

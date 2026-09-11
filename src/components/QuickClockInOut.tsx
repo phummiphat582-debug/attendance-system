@@ -12,7 +12,8 @@ import {
   Timer,
   Users,
   Camera,
-  Upload
+  Upload,
+  RotateCcw
 } from 'lucide-react';
 import type { AttendanceRecord, SystemSettings, UserProfile, WorkType } from '../types/attendance';
 import { attendanceService } from '../services/attendanceService';
@@ -59,6 +60,37 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
 
   // Photo upload ref
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Time Selection for Clock-In (Easy selection / Forgot to clock in)
+  const [timeMode, setTimeMode] = useState<'current' | 'custom'>('current');
+  const [customDate, setCustomDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [customTime, setCustomTime] = useState(() => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  });
+
+  // Time Selection for Clock-Out
+  const [checkOutTimeMode, setCheckOutTimeMode] = useState<'current' | 'custom'>('current');
+  const [checkOutCustomTime, setCheckOutCustomTime] = useState(() => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  });
+
+  // Quick preset helper for Clock In relative minutes
+  const applyRelativeMinutes = (minsAgo: number) => {
+    const d = new Date(Date.now() - minsAgo * 60 * 1000);
+    const h = String(d.getHours()).padStart(2, '0');
+    const m = String(d.getMinutes()).padStart(2, '0');
+    setCustomTime(`${h}:${m}`);
+  };
+
+  // Quick preset helper for Clock Out relative minutes
+  const applyCheckOutRelativeMinutes = (minsAgo: number) => {
+    const d = new Date(Date.now() - minsAgo * 60 * 1000);
+    const h = String(d.getHours()).padStart(2, '0');
+    const m = String(d.getMinutes()).padStart(2, '0');
+    setCheckOutCustomTime(`${h}:${m}`);
+  };
 
   // Check-out note state
   const [checkOutNote, setCheckOutNote] = useState('');
@@ -135,11 +167,21 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
   const handleClockIn = async () => {
     setLoadingAction(true);
     try {
+      let customTimestamp: string | undefined = undefined;
+      if (timeMode === 'custom') {
+        const [hours, mins] = customTime.split(':').map(Number);
+        const targetDate = new Date(customDate);
+        targetDate.setHours(hours || 8, mins || 30, 0, 0);
+        customTimestamp = targetDate.toISOString();
+      }
+
       const res = await attendanceService.checkIn({
         userId: activeEmployee.id,
         workType,
         note: note.trim(),
         location,
+        customTime: customTimestamp,
+        customDate: timeMode === 'custom' ? customDate : undefined,
       });
 
       if (res.error) {
@@ -168,9 +210,18 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
     if (!todayRecord) return;
     setLoadingAction(true);
     try {
+      let customTimestamp: string | undefined = undefined;
+      if (checkOutTimeMode === 'custom') {
+        const [hours, mins] = checkOutCustomTime.split(':').map(Number);
+        const targetDate = new Date(todayRecord.date);
+        targetDate.setHours(hours || 17, mins || 30, 0, 0);
+        customTimestamp = targetDate.toISOString();
+      }
+
       const res = await attendanceService.checkOut({
         recordId: todayRecord.id,
         note: checkOutNote.trim(),
+        customTime: customTimestamp,
       });
 
       if (res.error) {
@@ -194,6 +245,14 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
     } finally {
       setLoadingAction(false);
     }
+  };
+
+  const handleResetRecord = async (recordId: string) => {
+    if (!window.confirm('ต้องการยกเลิกการลงเวลาของวันนี้ เพื่อลงเวลาใหม่หรือไม่?')) return;
+    attendanceService.deleteRecord(recordId);
+    showToast('ลบรายการลงเวลาเรียบร้อย สามารถลงเวลาใหม่ได้แล้วครับ');
+    await reloadData();
+    onRecordUpdated();
   };
 
   // Calculate elapsed time if checked in
@@ -448,6 +507,128 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
                 </div>
               </div>
 
+              {/* Easy Time Selector (เวลาบันทึก - ปัจจุบัน หรือ ย้อนหลัง) */}
+              <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-4 sm:p-5 space-y-3 shadow-2xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-blue-600" />
+                    <span>เวลาบันทึกเข้างาน</span>
+                  </span>
+
+                  {/* Mode Selector Toggle */}
+                  <div className="flex items-center gap-1 bg-slate-200/70 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setTimeMode('current')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        timeMode === 'current'
+                          ? 'bg-white text-blue-700 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      ⚡ เวลาปัจจุบัน
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTimeMode('custom')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        timeMode === 'custom'
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      🕒 ระบุเวลาย้อนหลัง (กรณีลืมลง)
+                    </button>
+                  </div>
+                </div>
+
+                {timeMode === 'current' ? (
+                  <div className="flex items-center justify-between text-xs text-slate-600 bg-white border border-slate-200/80 rounded-xl px-4 py-2.5 shadow-2xs">
+                    <span>ใช้เวลาอัตโนมัติตามจริง:</span>
+                    <span className="font-mono font-bold text-slate-900 text-sm">{formattedTimeThai} น.</span>
+                  </div>
+                ) : (
+                  <div className="space-y-3 pt-1 animate-in fade-in duration-150">
+                    {/* Date and Time Inputs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          วันที่เข้างาน
+                        </label>
+                        <input
+                          type="date"
+                          value={customDate}
+                          onChange={(e) => setCustomDate(e.target.value)}
+                          className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/30"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          เวลาเข้างานจริง (ระบุเวลา)
+                        </label>
+                        <input
+                          type="time"
+                          value={customTime}
+                          onChange={(e) => setCustomTime(e.target.value)}
+                          className="w-full px-3 py-2 text-sm font-black font-mono text-blue-700 bg-white border border-blue-300 rounded-xl focus:ring-2 focus:ring-blue-500/30"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Quick 1-Click Time Preset Chips */}
+                    <div>
+                      <span className="text-[11px] font-semibold text-slate-500 mb-1.5 block">
+                        กดเลือกเวลาด่วน (1 วินาที):
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setCustomTime(settings.work_start_time || '08:30')}
+                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs transition cursor-pointer"
+                        >
+                          ⏰ {settings.work_start_time || '08:30'} (เวลาเริ่มงาน)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCustomTime('08:45')}
+                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs transition cursor-pointer"
+                        >
+                          08:45
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCustomTime('09:00')}
+                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs transition cursor-pointer"
+                        >
+                          09:00
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyRelativeMinutes(15)}
+                          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs transition cursor-pointer"
+                        >
+                          ⏪ 15 นาทีก่อน
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyRelativeMinutes(30)}
+                          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs transition cursor-pointer"
+                        >
+                          ⏪ 30 นาทีก่อน
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => applyRelativeMinutes(60)}
+                          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs transition cursor-pointer"
+                        >
+                          ⏪ 1 ชม. ก่อน
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Instant 1-Click Clock In Button */}
               <button
                 type="button"
@@ -457,7 +638,11 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
               >
                 <CheckCircle2 className="w-6 h-6" />
                 <span>
-                  {loadingAction ? 'กำลังบันทึกเวลา...' : `ลงเวลาเข้างานทันที (${activeEmployee.full_name})`}
+                  {loadingAction
+                    ? 'กำลังบันทึกเวลา...'
+                    : timeMode === 'custom'
+                    ? `บันทึกเวลาเข้างานย้อนหลัง (${customTime} น.)`
+                    : `ลงเวลาเข้างานทันที (${activeEmployee.full_name})`}
                 </span>
               </button>
             </div>
@@ -515,11 +700,21 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
 
                 <button
                   type="button"
+                  onClick={() => handleResetRecord(todayRecord.id)}
+                  className="py-3.5 px-4 rounded-2xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 font-semibold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 cursor-pointer border border-slate-200"
+                  title="กรณีลงเวลาผิด หรือต้องการเปลี่ยนเวลาเข้างาน"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>แก้ไข/ลงเวลาใหม่</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => onViewCalendar(activeEmployee)}
                   className="py-3.5 px-5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Calendar className="w-4 h-4 text-slate-500" />
-                  <span>ดูปฏิทินรายเดือนของคนนี้</span>
+                  <span>ดูปฏิทินของคนนี้</span>
                 </button>
               </div>
             </div>
@@ -546,7 +741,7 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
                 </p>
               </div>
 
-              <div className="flex justify-center gap-3 pt-2">
+              <div className="flex flex-wrap justify-center gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() => onViewCalendar(activeEmployee)}
@@ -554,6 +749,15 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
                 >
                   <Calendar className="w-3.5 h-3.5" />
                   <span>เปิดดูปฏิทินของ {activeEmployee.full_name}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleResetRecord(todayRecord.id)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 text-xs font-semibold shadow-xs flex items-center gap-1.5 transition cursor-pointer border border-slate-200"
+                  title="ลบข้อมูลวันนี้เพื่อลงเวลาใหม่"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>ยกเลิกเพื่อลงเวลาใหม่</span>
                 </button>
               </div>
             </div>
@@ -665,12 +869,93 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
             <h3 className="text-base font-bold text-slate-900">
               ยืนยันการลงเวลาออกงาน ({activeEmployee.full_name})
             </h3>
-            <p className="text-xs text-slate-500">
-              เวลาปัจจุบัน:{' '}
-              <strong className="text-slate-900 font-mono">
-                {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} น.
-              </strong>
-            </p>
+
+            {/* Clock-out Time Selection */}
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-rose-600" />
+                  <span>เวลาที่ออกงาน</span>
+                </span>
+                <div className="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-lg text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setCheckOutTimeMode('current')}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition cursor-pointer ${
+                      checkOutTimeMode === 'current'
+                        ? 'bg-white text-slate-900 shadow-2xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    ⚡ ตอนนี้
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCheckOutTimeMode('custom')}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition cursor-pointer ${
+                      checkOutTimeMode === 'custom'
+                        ? 'bg-rose-600 text-white shadow-2xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    🕒 ระบุเวลาจริง
+                  </button>
+                </div>
+              </div>
+
+              {checkOutTimeMode === 'current' ? (
+                <p className="text-xs text-slate-500">
+                  เวลาปัจจุบัน:{' '}
+                  <strong className="text-slate-900 font-mono">
+                    {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} น.
+                  </strong>
+                </p>
+              ) : (
+                <div className="space-y-2 pt-1 animate-in fade-in duration-100">
+                  <div className="flex items-center gap-2">
+                    <label className="text-[11px] font-semibold text-slate-600">
+                      เวลาออกงาน:
+                    </label>
+                    <input
+                      type="time"
+                      value={checkOutCustomTime}
+                      onChange={(e) => setCheckOutCustomTime(e.target.value)}
+                      className="px-2.5 py-1 text-xs font-bold font-mono text-rose-700 bg-white border border-rose-200 rounded-lg focus:ring-2 focus:ring-rose-500/30"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setCheckOutCustomTime('17:30')}
+                      className="px-2 py-0.5 text-[11px] font-medium rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 cursor-pointer"
+                    >
+                      17:30 (เลิกงาน)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCheckOutCustomTime('18:00')}
+                      className="px-2 py-0.5 text-[11px] font-medium rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 cursor-pointer"
+                    >
+                      18:00
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyCheckOutRelativeMinutes(30)}
+                      className="px-2 py-0.5 text-[11px] font-medium rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 cursor-pointer"
+                    >
+                      30 นาทีก่อน
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyCheckOutRelativeMinutes(60)}
+                      className="px-2 py-0.5 text-[11px] font-medium rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 cursor-pointer"
+                    >
+                      1 ชม. ก่อน
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 สรุปงานวันนี้ / หมายเหตุการออกงาน (ไม่บังคับ)

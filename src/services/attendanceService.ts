@@ -443,8 +443,9 @@ class AttendanceService {
     note?: string;
     location?: string;
     customTime?: string;
+    customDate?: string;
   }): Promise<{ record: AttendanceRecord | null; error?: string }> {
-    const today = getTodayDateString();
+    const today = params.customDate || (params.customTime ? params.customTime.split("T")[0] : getTodayDateString());
     const now = params.customTime ? new Date(params.customTime) : new Date();
     const settings = await this.getSettings();
 
@@ -456,7 +457,7 @@ class AttendanceService {
 
     const existing = this.records.find((r) => r.user_id === params.userId && r.date === today);
     if (existing) {
-      return { record: existing, error: "คุณได้บันทึกเวลาเข้างานของวันนี้ไปแล้ว" };
+      return { record: existing, error: "มีบันทึกเวลาของวันที่ระบุอยู่แล้ว (สามารถกดแก้ไขหรือลบเพื่อลงใหม่ได้)" };
     }
 
     const emp = this.employees.find((e) => e.id === params.userId) || this.currentProfile;
@@ -498,7 +499,7 @@ class AttendanceService {
     this.records[index] = {
       ...this.records[index],
       check_out_time: now.toISOString(),
-      check_out_note: params.note || "",
+      check_out_note: params.note !== undefined ? params.note : this.records[index].check_out_note,
     };
     this.saveRecords();
 
@@ -506,6 +507,16 @@ class AttendanceService {
     sendCheckOutNotification(this.records[index], emp, settings).catch(console.error);
 
     return { record: this.records[index] };
+  }
+
+  deleteRecord(recordId: string): boolean {
+    const prevCount = this.records.length;
+    this.records = this.records.filter((r) => r.id !== recordId);
+    if (this.records.length !== prevCount) {
+      this.saveRecords();
+      return true;
+    }
+    return false;
   }
 
   async addManualRecord(params: {
