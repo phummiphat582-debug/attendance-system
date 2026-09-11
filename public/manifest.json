@@ -1,0 +1,17 @@
+{
+  "name": "ProTech • ระบบลงเวลาเข้างาน",
+  "short_name": "ProTech",
+  "description": "ระบบลงเวลาเข้างานช่างเทคนิคประจำวันและระบบหลังบ้านหัวหน้างาน",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1e3a8a",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
