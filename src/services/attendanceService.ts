@@ -250,27 +250,44 @@ class AttendanceService {
     return [...this.employees];
   }
 
-  addEmployee(fullName: string, department: string, email?: string): UserProfile {
+  addEmployee(fullName: string, department: string, email?: string, avatarUrl?: string): UserProfile {
     const newEmp: UserProfile = {
       id: "emp-" + Date.now(),
       email: email || "",
       full_name: fullName.trim(),
       department: department.trim() || "ฝ่ายปฏิบัติการ",
       role: "employee",
-      avatar_url: "https://api.dicebear.com/7.x/initials/svg?seed=" + encodeURIComponent(fullName.trim()),
+      avatar_url:
+        avatarUrl || "https://api.dicebear.com/7.x/initials/svg?seed=" + encodeURIComponent(fullName.trim()),
     };
     this.employees.push(newEmp);
     this.saveEmployees();
     return newEmp;
   }
 
-  updateEmployee(id: string, fullName: string, department: string): UserProfile | null {
+  updateEmployee(id: string, fullName: string, department: string, avatarUrl?: string): UserProfile | null {
     const idx = this.employees.findIndex((e) => e.id === id);
     if (idx === -1) return null;
     this.employees[idx] = {
       ...this.employees[idx],
       full_name: fullName.trim(),
       department: department.trim(),
+      ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+    };
+    if (this.currentProfile.id === id) {
+      this.currentProfile = this.employees[idx];
+      localStorage.setItem("protech_user_profile", JSON.stringify(this.currentProfile));
+    }
+    this.saveEmployees();
+    return this.employees[idx];
+  }
+
+  updateEmployeePhoto(id: string, avatarUrl: string): UserProfile | null {
+    const idx = this.employees.findIndex((e) => e.id === id);
+    if (idx === -1) return null;
+    this.employees[idx] = {
+      ...this.employees[idx],
+      avatar_url: avatarUrl,
     };
     if (this.currentProfile.id === id) {
       this.currentProfile = this.employees[idx];

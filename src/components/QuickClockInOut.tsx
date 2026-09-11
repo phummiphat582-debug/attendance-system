@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import confetti from 'canvas-confetti';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Clock,
   Calendar,
@@ -11,10 +10,13 @@ import {
   UserPlus,
   LogOut,
   Timer,
-  Users
+  Users,
+  Camera,
+  Upload
 } from 'lucide-react';
 import type { AttendanceRecord, SystemSettings, UserProfile, WorkType } from '../types/attendance';
 import { attendanceService } from '../services/attendanceService';
+import { SuccessCelebrationModal } from './SuccessCelebrationModal';
 
 interface QuickClockInOutProps {
   employees: UserProfile[];
@@ -43,6 +45,20 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
   const [location, setLocation] = useState('พิกัดอัตโนมัติ (สำนักงาน / ไซต์งาน)');
   const [loadingAction, setLoadingAction] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Celebration Modal State
+  const [celebration, setCelebration] = useState<{
+    isOpen: boolean;
+    type: 'check_in' | 'check_out';
+    record: AttendanceRecord | null;
+  }>({
+    isOpen: false,
+    type: 'check_in',
+    record: null,
+  });
+
+  // Photo upload ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check-out note state
   const [checkOutNote, setCheckOutNote] = useState('');
@@ -74,6 +90,48 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 320;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          attendanceService.updateEmployeePhoto(activeEmployee.id, compressedDataUrl);
+          showToast(`อัปเดตรูปถ่ายของ "${activeEmployee.full_name}" สำเร็จ`);
+          onRecordUpdated();
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   const handleClockIn = async () => {
     setLoadingAction(true);
     try {
@@ -87,15 +145,17 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
       if (res.error) {
         showToast(res.error);
       } else {
-        confetti({
-          particleCount: 50,
-          spread: 60,
-          origin: { y: 0.7 },
-        });
         showToast(`บันทึกเวลาเข้างานสำเร็จสำหรับ "${activeEmployee.full_name}"`);
         setNote('');
         await reloadData();
         onRecordUpdated();
+        if (res.record) {
+          setCelebration({
+            isOpen: true,
+            type: 'check_in',
+            record: res.record,
+          });
+        }
       }
     } catch (err: any) {
       showToast(err?.message || 'เกิดข้อผิดพลาดในการลงเวลา');
@@ -121,6 +181,13 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
         showToast(`บันทึกเวลาออกงานเรียบร้อย (${activeEmployee.full_name})`);
         await reloadData();
         onRecordUpdated();
+        if (res.record) {
+          setCelebration({
+            isOpen: true,
+            type: 'check_out',
+            record: res.record,
+          });
+        }
       }
     } catch (err: any) {
       showToast(err?.message || 'เกิดข้อผิดพลาดในการออกงาน');
@@ -235,21 +302,48 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
         {/* Selected Person Header & Live Clock */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-blue-600/20 bg-white p-0.5 shadow-sm flex-shrink-0">
-              <img
-                src={activeEmployee.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${activeEmployee.full_name}`}
-                alt={activeEmployee.full_name}
-                className="w-full h-full object-cover rounded-xl"
+            {/* Avatar with Camera Button & Hidden Input */}
+            <div className="relative group flex-shrink-0">
+              <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden border-2 border-blue-600/20 bg-white p-0.5 shadow-sm">
+                <img
+                  src={activeEmployee.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${activeEmployee.full_name}`}
+                  alt={activeEmployee.full_name}
+                  className="w-full h-full object-cover rounded-xl"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                title="เปลี่ยนหรืออัปโหลดรูปถ่ายเจ้าหน้าที่"
+                className="absolute -bottom-1 -right-1 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white p-1.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center border-2 border-white"
+              >
+                <Camera className="w-3.5 h-3.5" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoChange}
               />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                   {activeEmployee.full_name}
                 </h1>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200">
                   {activeEmployee.department}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center gap-1 text-[11px] text-blue-700 hover:text-blue-800 bg-blue-50/90 hover:bg-blue-100 px-2.5 py-0.5 rounded-md font-medium transition cursor-pointer border border-blue-200/60"
+                  title="อัปโหลดรูปใหม่จากคอมหรือมือถือ"
+                >
+                  <Upload className="w-3 h-3" />
+                  <span>เปลี่ยนรูปถ่าย</span>
+                </button>
               </div>
               <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
@@ -609,6 +703,15 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
           </div>
         </div>
       )}
+
+      {/* Pop-up Celebration Animation Modal */}
+      <SuccessCelebrationModal
+        isOpen={celebration.isOpen}
+        onClose={() => setCelebration((prev) => ({ ...prev, isOpen: false }))}
+        type={celebration.type}
+        employee={activeEmployee}
+        record={celebration.record}
+      />
     </div>
   );
 };
