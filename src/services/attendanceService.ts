@@ -55,7 +55,14 @@ export const DEFAULT_EMPLOYEES: UserProfile[] = [
   },
 ];
 
-const getTodayDateString = () => new Date().toISOString().split("T")[0];
+export const getLocalDateString = (d: Date = new Date()): string => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getTodayDateString = () => getLocalDateString(new Date());
 
 class AttendanceService {
   private settings: SystemSettings = DEFAULT_SETTINGS;
@@ -445,7 +452,7 @@ class AttendanceService {
     customTime?: string;
     customDate?: string;
   }): Promise<{ record: AttendanceRecord | null; error?: string }> {
-    const today = params.customDate || (params.customTime ? params.customTime.split("T")[0] : getTodayDateString());
+    const today = params.customDate || (params.customTime ? getLocalDateString(new Date(params.customTime)) : getTodayDateString());
     const now = params.customTime ? new Date(params.customTime) : new Date();
     const settings = await this.getSettings();
 

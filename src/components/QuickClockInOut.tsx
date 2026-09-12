@@ -14,7 +14,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import type { AttendanceRecord, SystemSettings, UserProfile, WorkType } from '../types/attendance';
-import { attendanceService } from '../services/attendanceService';
+import { attendanceService, getLocalDateString } from '../services/attendanceService';
 import { SuccessCelebrationModal } from './SuccessCelebrationModal';
 
 interface QuickClockInOutProps {
@@ -61,7 +61,7 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
 
   // Time Selection for Clock-In (Easy selection / Forgot to clock in)
   const [timeMode, setTimeMode] = useState<'current' | 'custom'>('current');
-  const [customDate, setCustomDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [customDate, setCustomDate] = useState(() => getLocalDateString());
   const [customTime, setCustomTime] = useState(() => {
     const d = new Date();
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -75,11 +75,21 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
     setCustomTime(`${h}:${m}`);
   };
 
-  // Live timer
+  // Live timer & auto-detect midnight date reset (00:00)
+  const lastDateRef = useRef(getLocalDateString());
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const timer = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(now);
+      const currentDateStr = getLocalDateString(now);
+      if (currentDateStr !== lastDateRef.current) {
+        lastDateRef.current = currentDateStr;
+        setCustomDate(currentDateStr);
+        reloadData();
+      }
+    }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [activeEmployee.id]);
 
   // Load record for active employee and team overview
   const reloadData = async () => {
