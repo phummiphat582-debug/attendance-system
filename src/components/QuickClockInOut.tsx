@@ -10,7 +10,6 @@ import {
   UserPlus,
   Users,
   Camera,
-  Upload,
   RotateCcw
 } from 'lucide-react';
 import type { AttendanceRecord, SystemSettings, UserProfile, WorkType } from '../types/attendance';
@@ -228,27 +227,27 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
         </div>
       )}
 
-      {/* 1. Multi-Person Quick Selector Carousel */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2">
+      {/* 1. Multi-Person Quick Selector (Horizontal swipe on mobile, grid on desktop) */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-5 shadow-xs">
+        <div className="flex items-center justify-between gap-2 mb-2.5 sm:mb-3">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <Users className="w-4 h-4 text-blue-600" />
-            <h2 className="text-sm font-bold text-slate-800">
-              เลือกพนักงานที่ต้องการลงเวลา ({employees.length} คน)
+            <h2 className="text-xs sm:text-sm font-bold text-slate-800">
+              เลือกพนักงาน ({employees.length} คน)
             </h2>
           </div>
           <button
             type="button"
             onClick={onOpenAddEmployee}
-            className="flex items-center gap-1 text-xs font-semibold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition cursor-pointer"
+            className="flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg transition cursor-pointer active:scale-95"
           >
             <UserPlus className="w-3.5 h-3.5" />
-            <span>+ เพิ่มพนักงาน</span>
+            <span>+ เพิ่มคน</span>
           </button>
         </div>
 
-        {/* Employee Cards Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        {/* Responsive: Swipeable Carousel on mobile, 4-col Grid on sm+ */}
+        <div className="flex gap-2 overflow-x-auto pb-1.5 -mx-1 px-1 sm:grid sm:grid-cols-4 sm:overflow-visible no-scrollbar snap-x">
           {employees.map((emp) => {
             const isSelected = emp.id === activeEmployee.id;
             const empStatus = teamStatus.find((t) => t.employee.id === emp.id);
@@ -259,13 +258,13 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
                 key={emp.id}
                 type="button"
                 onClick={() => onSelectEmployee(emp)}
-                className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                className={`flex items-center gap-2 sm:gap-2.5 p-2 sm:p-2.5 rounded-xl border text-left transition cursor-pointer min-w-[140px] sm:min-w-0 flex-shrink-0 snap-start active:scale-95 ${
                   isSelected
-                    ? 'border-blue-600 bg-blue-50/70 shadow-xs ring-2 ring-blue-500/20'
+                    ? 'border-blue-600 bg-blue-50/80 shadow-xs ring-2 ring-blue-500/20'
                     : 'border-slate-200 bg-slate-50/60 hover:bg-white hover:border-slate-300'
                 }`}
               >
-                <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0 bg-white border border-slate-200 shadow-xs">
+                <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden flex-shrink-0 bg-white border border-slate-200 shadow-xs">
                   <img
                     src={emp.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${emp.full_name}`}
                     alt={emp.full_name}
@@ -279,7 +278,7 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
                   <p className={`text-xs font-bold truncate ${isSelected ? 'text-blue-950' : 'text-slate-800'}`}>
                     {emp.full_name}
                   </p>
-                  <p className="text-[11px] text-slate-500 truncate">{emp.department}</p>
+                  <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">{emp.department}</p>
                 </div>
               </button>
             );
@@ -288,16 +287,16 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
       </div>
 
       {/* 2. Main Clock In Action Card */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-7 shadow-xs relative overflow-hidden">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-7 shadow-xs relative overflow-hidden">
         {/* Background decorative tint */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-blue-50/50 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
 
-        {/* Selected Person Header & Live Clock */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-5 border-b border-slate-100">
-          <div className="flex items-center gap-4">
-            {/* Avatar with Camera Button & Hidden Input */}
+        {/* Selected Person Header & Live Clock (Compact mobile 1-row layout) */}
+        <div className="flex items-center justify-between gap-3 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Avatar with Camera Button */}
             <div className="relative group flex-shrink-0">
-              <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden border-2 border-blue-600/20 bg-white p-0.5 shadow-sm">
+              <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border-2 border-blue-600/20 bg-white p-0.5 shadow-sm">
                 <img
                   src={activeEmployee.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${activeEmployee.full_name}`}
                   alt={activeEmployee.full_name}
@@ -307,10 +306,10 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                title="เปลี่ยนหรืออัปโหลดรูปถ่ายเจ้าหน้าที่"
-                className="absolute -bottom-1 -right-1 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white p-1.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center border-2 border-white"
+                title="เปลี่ยนหรืออัปโหลดรูปถ่าย"
+                className="absolute -bottom-1 -right-1 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white p-1 sm:p-1.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center border-2 border-white"
               >
-                <Camera className="w-3.5 h-3.5" />
+                <Camera className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
               <input
                 ref={fileInputRef}
@@ -320,40 +319,32 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
                 onChange={handlePhotoChange}
               />
             </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <h1 className="text-base sm:text-2xl font-black text-slate-900 tracking-tight truncate">
                   {activeEmployee.full_name}
                 </h1>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200">
+                <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200 flex-shrink-0">
                   {activeEmployee.department}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-1 text-[11px] text-blue-700 hover:text-blue-800 bg-blue-50/90 hover:bg-blue-100 px-2.5 py-0.5 rounded-md font-medium transition cursor-pointer border border-blue-200/60"
-                  title="อัปโหลดรูปใหม่จากคอมหรือมือถือ"
-                >
-                  <Upload className="w-3 h-3" />
-                  <span>เปลี่ยนรูปถ่าย</span>
-                </button>
               </div>
-              <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <span>{formattedDateThai}</span>
+              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 flex items-center gap-1 truncate">
+                <Calendar className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                <span className="truncate">{formattedDateThai}</span>
               </p>
             </div>
           </div>
 
-          {/* Large Live Digital Clock */}
-          <div className="flex items-baseline gap-3 bg-slate-900 text-white px-5 sm:px-6 py-3.5 rounded-2xl shadow-md self-start sm:self-auto">
-            <Clock className="w-5 h-5 text-emerald-400 self-center" />
+          {/* Live Digital Clock Card */}
+          <div className="flex items-center gap-2 bg-slate-900 text-white px-3 sm:px-5 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl shadow-md flex-shrink-0">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 flex-shrink-0" />
             <div>
-              <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white">
+              <div className="text-base sm:text-2xl font-black font-mono tracking-tight text-white leading-tight">
                 {formattedTimeThai}
               </div>
-              <div className="text-[11px] text-slate-400 font-medium text-right">
-                เวลาเริ่มงาน: {settings.work_start_time || '08:30'} น.
+              <div className="text-[9px] sm:text-[11px] text-slate-400 font-medium text-right hidden sm:block">
+                เริ่มงาน: {settings.work_start_time || '08:30'} น.
               </div>
             </div>
           </div>
@@ -404,53 +395,53 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
                 <label className="block text-xs font-bold text-slate-700 mb-2">
                   สถานที่ / รูปแบบการปฏิบัติงานวันนี้
                 </label>
-                <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={() => setWorkType('office')}
-                    className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition cursor-pointer ${
+                    className={`flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-xl border text-center transition cursor-pointer active:scale-95 ${
                       workType === 'office'
                         ? 'border-blue-600 bg-blue-50/80 text-blue-900 font-bold shadow-xs ring-1 ring-blue-500'
                         : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
                     }`}
                   >
-                    <Building2 className={`w-5 h-5 mb-1 ${workType === 'office' ? 'text-blue-600' : 'text-slate-400'}`} />
-                    <span className="text-xs">เข้าออฟฟิศ</span>
+                    <Building2 className={`w-4 h-4 sm:w-5 sm:h-5 mb-1 ${workType === 'office' ? 'text-blue-600' : 'text-slate-400'}`} />
+                    <span className="text-xs font-semibold">ออฟฟิศ</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setWorkType('wfh')}
-                    className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition cursor-pointer ${
+                    className={`flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-xl border text-center transition cursor-pointer active:scale-95 ${
                       workType === 'wfh'
                         ? 'border-indigo-600 bg-indigo-50/80 text-indigo-900 font-bold shadow-xs ring-1 ring-indigo-500'
                         : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
                     }`}
                   >
-                    <Home className={`w-5 h-5 mb-1 ${workType === 'wfh' ? 'text-indigo-600' : 'text-slate-400'}`} />
-                    <span className="text-xs">WFH (ที่บ้าน)</span>
+                    <Home className={`w-4 h-4 sm:w-5 sm:h-5 mb-1 ${workType === 'wfh' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                    <span className="text-xs font-semibold">WFH</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setWorkType('onsite')}
-                    className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition cursor-pointer ${
+                    className={`flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-xl border text-center transition cursor-pointer active:scale-95 ${
                       workType === 'onsite'
                         ? 'border-amber-600 bg-amber-50/80 text-amber-900 font-bold shadow-xs ring-1 ring-amber-500'
                         : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
                     }`}
                   >
-                    <Briefcase className={`w-5 h-5 mb-1 ${workType === 'onsite' ? 'text-amber-600' : 'text-slate-400'}`} />
-                    <span className="text-xs">ไซต์งาน / นอกสถานที่</span>
+                    <Briefcase className={`w-4 h-4 sm:w-5 sm:h-5 mb-1 ${workType === 'onsite' ? 'text-amber-600' : 'text-slate-400'}`} />
+                    <span className="text-xs font-semibold">ไซต์งาน</span>
                   </button>
                 </div>
               </div>
 
               {/* Easy Time Selector (เวลาบันทึก - ปัจจุบัน หรือ ระบุเวลาย้อนหลัง) */}
-              <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-4 space-y-3 shadow-2xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-3.5 sm:p-4 space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 text-blue-600" />
+                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
                     <span>เวลาบันทึกเข้างาน</span>
                   </span>
 
@@ -459,24 +450,26 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
                     <button
                       type="button"
                       onClick={() => setTimeMode('current')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 ${
                         timeMode === 'current'
                           ? 'bg-white text-blue-700 shadow-xs'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      ⚡ เวลาปัจจุบัน
+                      <span className="hidden sm:inline">⚡ เวลาปัจจุบัน</span>
+                      <span className="sm:hidden">⚡ ปัจจุบัน</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setTimeMode('custom')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 ${
                         timeMode === 'custom'
                           ? 'bg-blue-600 text-white shadow-xs'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      🕒 ระบุเวลาย้อนหลัง (กรณีลืมลง)
+                      <span className="hidden sm:inline">🕒 ระบุเวลาย้อนหลัง</span>
+                      <span className="sm:hidden">🕒 ย้อนหลัง</span>
                     </button>
                   </div>
                 </div>
@@ -671,19 +664,108 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
         </div>
       </div>
 
-      {/* 3. Team Attendance Overview Table (Multi-person Quick Action, NO CLOCK-OUT COLUMN) */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs">
+      {/* 3. Team Attendance Overview (Mobile Cards + Desktop Table, NO CLOCK-OUT) */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-blue-600" />
-            <h3 className="text-sm font-bold text-slate-900">
-              สถานะการลงเวลาเข้างานของทีมงานวันนี้ ({teamStatus.filter((t) => t.record).length}/{employees.length} คนลงเวลาแล้ว)
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+              สถานะทีมงานวันนี้ ({teamStatus.filter((t) => t.record).length}/{employees.length} คนลงเวลาแล้ว)
             </h3>
           </div>
-          <span className="text-xs text-slate-400">อัปเดตเรียลไทม์</span>
+          <span className="text-[11px] text-slate-400">อัปเดตสด</span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile View: Clean Touch Cards (sm:hidden) */}
+        <div className="sm:hidden divide-y divide-slate-100">
+          {teamStatus.map(({ employee, record }) => {
+            const isSelected = employee.id === activeEmployee.id;
+            const inTime = record
+              ? new Date(record.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+              : null;
+            const workTypeEmoji =
+              record?.work_type === 'office' ? '🏢' : record?.work_type === 'wfh' ? '🏠' : record?.work_type === 'onsite' ? '🚗' : '';
+
+            return (
+              <div
+                key={employee.id}
+                className={`py-3 flex items-center justify-between gap-2.5 transition ${
+                  isSelected ? 'bg-blue-50/50 -mx-2 px-2 rounded-xl' : ''
+                }`}
+              >
+                {/* Avatar & Info */}
+                <button
+                  type="button"
+                  onClick={() => onSelectEmployee(employee)}
+                  className="flex items-center gap-2.5 min-w-0 text-left cursor-pointer flex-1"
+                >
+                  <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0 bg-white border border-slate-200 shadow-xs">
+                    <img
+                      src={employee.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${employee.full_name}`}
+                      alt={employee.full_name}
+                      className="w-full h-full object-cover"
+                    />
+                    {record && (
+                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white bg-emerald-500" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-slate-900 truncate">{employee.full_name}</p>
+                      {isSelected && (
+                        <span className="text-[9px] bg-blue-100 text-blue-800 px-1 py-0.2 rounded font-semibold flex-shrink-0">
+                          เลือกอยู่
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500 truncate">{employee.department}</p>
+                  </div>
+                </button>
+
+                {/* Status & Actions */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {record ? (
+                    <div className="text-right">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          record.status === 'on_time'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}
+                      >
+                        <span>{workTypeEmoji}</span>
+                        <span>{inTime} น.</span>
+                      </span>
+                      <span className="block text-[9px] text-slate-400 mt-0.5 text-right">
+                        {record.status === 'on_time' ? '● ตรงเวลา' : '● สาย'}
+                      </span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onSelectEmployee(employee)}
+                      className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 active:scale-95 text-blue-700 text-[11px] font-bold transition cursor-pointer border border-blue-200/60"
+                    >
+                      ลงเวลาคนนี้
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => onViewCalendar(employee)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-blue-700 hover:bg-slate-100 active:scale-95 transition cursor-pointer"
+                    title="ดูปฏิทินรายเดือน"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop/Tablet View: Full Table (hidden sm:block) */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="text-slate-400 font-semibold border-b border-slate-100">
@@ -776,13 +858,13 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
         </div>
       </div>
 
-      {/* 4. Sticky Floating Action Bar (แบบเลื่อนแล้วไม่หาย โชว์ตลอดเวลา) */}
+      {/* 4. Sticky Floating Action Bar (Always visible floating bar on mobile & desktop) */}
       <aside
         aria-label="แถบลงเวลาเข้างานลอยตัว"
-        className="fixed bottom-4 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:max-w-xl z-40 bg-slate-900/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-4 duration-200"
+        className="fixed bottom-3 sm:bottom-4 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:max-w-xl z-40 bg-slate-900/95 backdrop-blur-md text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center justify-between gap-2 sm:gap-3 animate-in slide-in-from-bottom-4 duration-200 mb-[env(safe-area-inset-bottom,0px)]"
       >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="relative w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 border border-slate-600 bg-slate-800">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden flex-shrink-0 border border-slate-600 bg-slate-800">
             <img
               src={activeEmployee.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${activeEmployee.full_name}`}
               alt={activeEmployee.full_name}
@@ -794,34 +876,34 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold truncate text-white max-w-[120px] sm:max-w-[160px]">
+              <span className="text-xs font-bold truncate text-white max-w-[105px] xs:max-w-[140px] sm:max-w-[170px]">
                 {activeEmployee.full_name}
               </span>
               <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono hidden sm:inline-block">
                 {workType === 'office' ? 'ออฟฟิศ' : workType === 'wfh' ? 'WFH' : 'ไซต์งาน'}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 truncate flex items-center gap-1 font-mono">
-              <Clock className="w-3 h-3 text-emerald-400" />
+            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate flex items-center gap-1 font-mono">
+              <Clock className="w-3 h-3 text-emerald-400 flex-shrink-0" />
               {todayRecord ? (
-                <span className="text-emerald-300 font-semibold">
-                  เข้างานแล้ว: {new Date(todayRecord.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                <span className="text-emerald-300 font-semibold truncate">
+                  เข้าแล้ว: {new Date(todayRecord.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
                 </span>
               ) : timeMode === 'custom' ? (
-                <span>ระบุเวลา: {customTime} น.</span>
+                <span>ระบุ: {customTime} น.</span>
               ) : (
-                <span>เวลา: {formattedTimeThai} น.</span>
+                <span>{formattedTimeThai} น.</span>
               )}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           {todayRecord ? (
             <button
               type="button"
               onClick={() => handleResetRecord(todayRecord.id)}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 border border-slate-700 cursor-pointer"
+              className="px-2.5 sm:px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 border border-slate-700 cursor-pointer"
               title="แก้ไขหรือลงเวลาเข้างานใหม่"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -832,10 +914,10 @@ export const QuickClockInOut: React.FC<QuickClockInOutProps> = ({
               type="button"
               disabled={loadingAction}
               onClick={handleClockIn}
-              className="px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-95 text-white text-xs sm:text-sm font-black shadow-lg shadow-emerald-500/30 transition flex items-center gap-2 cursor-pointer"
+              className="px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-95 text-white text-xs sm:text-sm font-black shadow-lg shadow-emerald-500/30 transition flex items-center gap-1.5 sm:gap-2 cursor-pointer"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{loadingAction ? 'กำลังบันทึก...' : 'ลงเวลาเข้างานทันที'}</span>
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span>{loadingAction ? 'บันทึก...' : 'ลงเวลาทันที'}</span>
             </button>
           )}
         </div>

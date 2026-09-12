@@ -131,36 +131,36 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
   return (
     <div className="space-y-6">
       {/* 1. Header & Controls Bar */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4">
         {/* Employee Switcher */}
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl border border-blue-200 p-0.5 overflow-hidden bg-white shadow-xs flex-shrink-0">
+        <div className="flex items-center gap-2.5 sm:gap-3 w-full md:w-auto">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl border border-blue-200 p-0.5 overflow-hidden bg-white shadow-xs flex-shrink-0">
             <img
               src={activeEmployee.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${activeEmployee.full_name}`}
               alt={activeEmployee.full_name}
               className="w-full h-full object-cover rounded-lg"
             />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-black text-slate-900">
-                ปฏิทินเข้างาน: {activeEmployee.full_name}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h2 className="text-sm sm:text-base font-black text-slate-900 truncate">
+                {activeEmployee.full_name}
               </h2>
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200">
+              <span className="text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.2 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200 flex-shrink-0">
                 {activeEmployee.department}
               </span>
             </div>
 
             {/* Quick dropdown to switch member */}
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-slate-400">สลับดูของคนอื่น:</span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[11px] text-slate-400">สลับคน:</span>
               <select
                 value={activeEmployee.id}
                 onChange={(e) => {
                   const emp = employees.find((item) => item.id === e.target.value);
                   if (emp) onSelectEmployee(emp);
                 }}
-                className="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1 outline-none cursor-pointer"
+                className="text-[11px] sm:text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2 py-0.5 outline-none cursor-pointer max-w-[170px] truncate"
               >
                 {employees.map((emp) => (
                   <option key={emp.id} value={emp.id}>
@@ -173,43 +173,43 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
         </div>
 
         {/* Month Navigator */}
-        <div className="flex items-center gap-2 self-stretch md:self-auto justify-between md:justify-end">
-          <div className="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200">
+        <div className="flex items-center gap-1.5 sm:gap-2 w-full md:w-auto justify-between md:justify-end flex-wrap">
+          <div className="flex items-center bg-slate-100 rounded-xl p-0.5 sm:p-1 border border-slate-200">
             <button
               type="button"
               onClick={handlePrevMonth}
-              className="p-1.5 rounded-lg hover:bg-white text-slate-600 hover:text-slate-900 transition cursor-pointer"
+              className="p-1 sm:p-1.5 rounded-lg hover:bg-white text-slate-600 hover:text-slate-900 transition cursor-pointer active:scale-95"
               title="เดือนก่อนหน้า"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
-            <span className="text-xs sm:text-sm font-bold text-slate-800 px-3 min-w-[140px] text-center">
-              {monthNamesThai[selectedMonth - 1]} {selectedYear + 543} ({selectedYear})
+            <span className="text-xs sm:text-sm font-bold text-slate-800 px-2 sm:px-3 min-w-[110px] sm:min-w-[140px] text-center truncate">
+              {monthNamesThai[selectedMonth - 1]} {selectedYear + 543}
             </span>
             <button
               type="button"
               onClick={handleNextMonth}
-              className="p-1.5 rounded-lg hover:bg-white text-slate-600 hover:text-slate-900 transition cursor-pointer"
+              className="p-1 sm:p-1.5 rounded-lg hover:bg-white text-slate-600 hover:text-slate-900 transition cursor-pointer active:scale-95"
               title="เดือนถัดไป"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
 
           <button
             type="button"
             onClick={handleCurrentMonth}
-            className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition cursor-pointer"
+            className="px-2.5 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition cursor-pointer active:scale-95"
           >
-            เดือนปัจจุบัน
+            ปัจจุบัน
           </button>
 
           <button
             type="button"
             onClick={onBackToClockInOut}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition cursor-pointer"
+            className="flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition cursor-pointer active:scale-95"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
+            <ArrowLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             <span>กลับหน้าลงเวลา</span>
           </button>
         </div>
@@ -224,68 +224,68 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
 
       {/* 2. Monthly KPI Stats */}
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs">
-            <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-xs">
+            <span className="text-[11px] sm:text-xs text-slate-500 flex items-center gap-1 font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
               <span>อัตราเข้างาน</span>
             </span>
-            <p className="text-2xl font-black text-slate-900 mt-1 font-mono">
+            <p className="text-xl sm:text-2xl font-black text-slate-900 mt-1 font-mono">
               {stats.attendanceRate}%
             </p>
-            <span className="text-[11px] text-slate-400 block mt-0.5">
-              เข้างาน {stats.attendedDays} / {stats.totalWorkDays} วันทำงาน
+            <span className="text-[10px] sm:text-[11px] text-slate-400 block mt-0.5">
+              มา {stats.attendedDays}/{stats.totalWorkDays} วัน
             </span>
           </div>
 
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs">
-            <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
-              <Clock className="w-3.5 h-3.5 text-blue-500" />
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-xs">
+            <span className="text-[11px] sm:text-xs text-slate-500 flex items-center gap-1 font-medium">
+              <Clock className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
               <span>เข้างานตรงเวลา</span>
             </span>
-            <p className="text-2xl font-black text-emerald-600 mt-1 font-mono">
+            <p className="text-xl sm:text-2xl font-black text-emerald-600 mt-1 font-mono">
               {stats.onTimeDays} <span className="text-xs text-slate-400 font-normal">วัน</span>
             </p>
-            <span className="text-[11px] text-emerald-600/90 block mt-0.5">
-              คิดเป็น {stats.onTimeRate}% ของที่มา
+            <span className="text-[10px] sm:text-[11px] text-emerald-600/90 block mt-0.5">
+              ตรงเวลา {stats.onTimeRate}%
             </span>
           </div>
 
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs">
-            <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
-              <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-xs">
+            <span className="text-[11px] sm:text-xs text-slate-500 flex items-center gap-1 font-medium">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
               <span>มาสาย</span>
             </span>
-            <p className="text-2xl font-black text-amber-600 mt-1 font-mono">
+            <p className="text-xl sm:text-2xl font-black text-amber-600 mt-1 font-mono">
               {stats.lateDays} <span className="text-xs text-slate-400 font-normal">วัน</span>
             </p>
-            <span className="text-[11px] text-amber-600/90 block mt-0.5">
-              หลังเวลา 08:30 น.
+            <span className="text-[10px] sm:text-[11px] text-amber-600/90 block mt-0.5">
+              หลัง 08:30 น.
             </span>
           </div>
 
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs">
-            <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
-              <XCircle className="w-3.5 h-3.5 text-rose-500" />
-              <span>ขาด / ไม่ได้ลงเวลา</span>
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-xs">
+            <span className="text-[11px] sm:text-xs text-slate-500 flex items-center gap-1 font-medium">
+              <XCircle className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" />
+              <span>ไม่ได้ลงเวลา</span>
             </span>
-            <p className="text-2xl font-black text-rose-600 mt-1 font-mono">
+            <p className="text-xl sm:text-2xl font-black text-rose-600 mt-1 font-mono">
               {stats.absentDays} <span className="text-xs text-slate-400 font-normal">วัน</span>
             </p>
-            <span className="text-[11px] text-slate-400 block mt-0.5">
-              วันทำงานที่ไม่มีประวัติ
+            <span className="text-[10px] sm:text-[11px] text-slate-400 block mt-0.5">
+              ไม่มีบันทึก
             </span>
           </div>
 
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs col-span-2 sm:col-span-1">
-            <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
-              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500" />
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-xs col-span-2 sm:col-span-1">
+            <span className="text-[11px] sm:text-xs text-slate-500 flex items-center gap-1 font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
               <span>มาทำงานรวม</span>
             </span>
-            <p className="text-2xl font-black text-indigo-600 mt-1 font-mono">
+            <p className="text-xl sm:text-2xl font-black text-indigo-600 mt-1 font-mono">
               {stats.attendedDays} <span className="text-xs text-slate-400 font-normal">วัน</span>
             </p>
-            <span className="text-[11px] text-slate-400 block mt-0.5">
+            <span className="text-[10px] sm:text-[11px] text-slate-400 block mt-0.5">
               🏢 {stats.officeDays} • 🏠 {stats.wfhDays} • 🚗 {stats.onsiteDays}
             </span>
           </div>
@@ -293,23 +293,23 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       )}
 
       {/* 3. Main Calendar Grid */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-6 shadow-xs">
-        {/* Days of Week Header */}
-        <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-2 text-center text-xs font-bold text-slate-400">
-          <div className="py-2 text-rose-500">อาทิตย์</div>
-          <div className="py-2">จันทร์</div>
-          <div className="py-2">อังคาร</div>
-          <div className="py-2">พุธ</div>
-          <div className="py-2">พฤหัสบดี</div>
-          <div className="py-2">ศุกร์</div>
-          <div className="py-2 text-rose-500">เสาร์</div>
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-6 shadow-xs">
+        {/* Days of Week Header (Short Thai names on mobile, full on desktop) */}
+        <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center text-[11px] sm:text-xs font-bold text-slate-400">
+          <div className="py-1.5 sm:py-2 text-rose-500"><span className="sm:hidden">อา.</span><span className="hidden sm:inline">อาทิตย์</span></div>
+          <div className="py-1.5 sm:py-2"><span className="sm:hidden">จ.</span><span className="hidden sm:inline">จันทร์</span></div>
+          <div className="py-1.5 sm:py-2"><span className="sm:hidden">อ.</span><span className="hidden sm:inline">อังคาร</span></div>
+          <div className="py-1.5 sm:py-2"><span className="sm:hidden">พ.</span><span className="hidden sm:inline">พุธ</span></div>
+          <div className="py-1.5 sm:py-2"><span className="sm:hidden">พฤ.</span><span className="hidden sm:inline">พฤหัสบดี</span></div>
+          <div className="py-1.5 sm:py-2"><span className="sm:hidden">ศ.</span><span className="hidden sm:inline">ศุกร์</span></div>
+          <div className="py-1.5 sm:py-2 text-rose-500"><span className="sm:hidden">ส.</span><span className="hidden sm:inline">เสาร์</span></div>
         </div>
 
         {/* Days Grid */}
-        <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {/* Empty cells padding for start of month */}
           {paddingDays.map((_, idx) => (
-            <div key={`pad-${idx}`} className="h-20 sm:h-24 bg-slate-50/40 rounded-xl border border-dashed border-slate-100 opacity-40"></div>
+            <div key={`pad-${idx}`} className="h-16 sm:h-24 bg-slate-50/40 rounded-xl border border-dashed border-slate-100 opacity-40"></div>
           ))}
 
           {/* Actual Month Days */}
@@ -341,7 +341,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
               <div
                 key={day.date}
                 onClick={() => setSelectedDay(day)}
-                className={`h-20 sm:h-24 p-2 rounded-xl border flex flex-col justify-between transition cursor-pointer relative overflow-hidden ${
+                className={`min-h-[60px] sm:h-24 p-1 sm:p-2 rounded-xl border flex flex-col justify-between transition cursor-pointer relative overflow-hidden active:scale-95 ${
                   isSelected
                     ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-500/30 shadow-xs'
                     : day.isToday
@@ -354,9 +354,9 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
                 {/* Day Number and Today indicator */}
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-bold ${
+                    className={`text-[11px] sm:text-xs font-bold ${
                       day.isToday
-                        ? 'w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-mono shadow-xs'
+                        ? 'w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-mono shadow-xs'
                         : day.isWeekend
                         ? 'text-rose-400 font-mono'
                         : 'text-slate-800 font-mono'
@@ -366,7 +366,7 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
                   </span>
 
                   {rec && (
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[9px] sm:text-[10px] text-slate-400">
                       {rec.work_type === 'office' ? '🏢' : rec.work_type === 'wfh' ? '🏠' : '🚗'}
                     </span>
                   )}
@@ -376,14 +376,14 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
                 <div className="mt-auto">
                   {rec ? (
                     <div className="space-y-0.5">
-                      <div className={`px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-bold border truncate ${badgeClass}`}>
+                      <div className={`px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded text-[9px] sm:text-[11px] font-bold border truncate ${badgeClass}`}>
                         {new Date(rec.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   ) : day.isFuture ? (
-                    <span className="text-[10px] text-slate-300 block">-</span>
+                    <span className="text-[10px] text-slate-300 block text-center">-</span>
                   ) : (
-                    <span className={`px-1 py-0.5 rounded text-[9px] sm:text-[10px] font-medium border block text-center truncate ${badgeClass}`}>
+                    <span className={`px-0.5 sm:px-1 py-0.2 sm:py-0.5 rounded text-[8px] sm:text-[10px] font-medium border block text-center truncate ${badgeClass}`}>
                       {statusLabel}
                     </span>
                   )}
@@ -396,52 +396,47 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
 
       {/* 4. Day Details Inspector Box */}
       {selectedDay && (
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold font-mono text-sm border border-blue-200 flex-shrink-0">
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold font-mono text-xs sm:text-sm border border-blue-200 flex-shrink-0">
               {selectedDay.dayNumber}
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h4 className="text-sm font-bold text-slate-900">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h4 className="text-xs sm:text-sm font-bold text-slate-900">
                   {selectedDay.dayName}ที่ {selectedDay.dayNumber} {monthNamesThai[selectedMonth - 1]} {selectedYear + 543}
                 </h4>
                 {selectedDay.isToday && (
-                  <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold">
+                  <span className="text-[9px] sm:text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded-full font-bold">
                     วันนี้
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
                 {selectedDay.record ? (
                   <>
                     เข้างาน: <strong className="text-slate-800">{new Date(selectedDay.record.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</strong>
-                    {' '}• รูปแบบ: {selectedDay.record.work_type === 'office' ? 'ออฟฟิศ' : selectedDay.record.work_type === 'wfh' ? 'WFH' : 'ไซต์งาน'}
+                    {' '}• {selectedDay.record.work_type === 'office' ? '🏢 ออฟฟิศ' : selectedDay.record.work_type === 'wfh' ? '🏠 WFH' : '🚗 ไซต์งาน'}
                     {selectedDay.record.check_in_note ? ` • หมายเหตุ: "${selectedDay.record.check_in_note}"` : ''}
                   </>
-                ) : selectedDay.isWeekend ? (
-                  'วันหยุดประจำสัปดาห์'
-                ) : selectedDay.isFuture ? (
-                  'วันที่ยังมาไม่ถึง'
                 ) : (
-                  <span className="text-rose-600 font-medium">ไม่ได้บันทึกเวลาเข้างานในวันนี้</span>
+                  <span>ไม่มีประวัติการลงเวลาในวันนี้</span>
                 )}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-center">
-            <button
-              type="button"
-              onClick={() => openManualEntry(selectedDay)}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition flex items-center gap-1.5 cursor-pointer"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-              <span>{selectedDay.record ? 'แก้ไขเวลาย้อนหลัง' : 'บันทึกเวลาย้อนหลัง'}</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => openManualEntry(selectedDay)}
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition cursor-pointer active:scale-95"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+            <span>{selectedDay.record ? 'แก้ไขรายการนี้' : 'ลงเวลาย้อนหลังวันนี้'}</span>
+          </button>
         </div>
       )}
+
 
       {/* Manual Entry / Edit Modal */}
       {showManualModal && (
