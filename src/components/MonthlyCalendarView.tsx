@@ -37,7 +37,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualDate, setManualDate] = useState('');
   const [manualInTime, setManualInTime] = useState('08:30');
-  const [manualOutTime, setManualOutTime] = useState('17:30');
   const [manualWorkType, setManualWorkType] = useState<WorkType>('office');
   const [manualStatus, setManualStatus] = useState<AttendanceStatus>('on_time');
   const [manualNote, setManualNote] = useState('');
@@ -99,16 +98,11 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       const rec = day.record;
       const inT = new Date(rec.check_in_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       setManualInTime(inT);
-      const outT = rec.check_out_time
-        ? new Date(rec.check_out_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-        : '17:30';
-      setManualOutTime(outT);
       setManualWorkType(rec.work_type);
       setManualStatus(rec.status);
       setManualNote(rec.check_in_note || '');
     } else {
       setManualInTime('08:20');
-      setManualOutTime('17:30');
       setManualWorkType('office');
       setManualStatus('on_time');
       setManualNote('');
@@ -122,7 +116,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
       userId: activeEmployee.id,
       date: manualDate,
       checkInTime: manualInTime,
-      checkOutTime: manualOutTime || undefined,
       workType: manualWorkType,
       status: manualStatus,
       note: manualNote.trim(),
@@ -286,11 +279,11 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
 
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs col-span-2 sm:col-span-1">
             <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
-              <Clock className="w-3.5 h-3.5 text-indigo-500" />
-              <span>ชั่วโมงรวม</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500" />
+              <span>มาทำงานรวม</span>
             </span>
             <p className="text-2xl font-black text-indigo-600 mt-1 font-mono">
-              {stats.totalHours} <span className="text-xs text-slate-400 font-normal">ชม.</span>
+              {stats.attendedDays} <span className="text-xs text-slate-400 font-normal">วัน</span>
             </p>
             <span className="text-[11px] text-slate-400 block mt-0.5">
               🏢 {stats.officeDays} • 🏠 {stats.wfhDays} • 🚗 {stats.onsiteDays}
@@ -386,11 +379,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
                       <div className={`px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-bold border truncate ${badgeClass}`}>
                         {new Date(rec.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
                       </div>
-                      {rec.check_out_time && (
-                        <div className="text-[9px] sm:text-[10px] text-slate-400 font-mono px-0.5 truncate">
-                          - {new Date(rec.check_out_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      )}
                     </div>
                   ) : day.isFuture ? (
                     <span className="text-[10px] text-slate-300 block">-</span>
@@ -428,9 +416,6 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
                 {selectedDay.record ? (
                   <>
                     เข้างาน: <strong className="text-slate-800">{new Date(selectedDay.record.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</strong>
-                    {selectedDay.record.check_out_time && (
-                      <> • ออกงาน: <strong className="text-slate-800">{new Date(selectedDay.record.check_out_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</strong></>
-                    )}
                     {' '}• รูปแบบ: {selectedDay.record.work_type === 'office' ? 'ออฟฟิศ' : selectedDay.record.work_type === 'wfh' ? 'WFH' : 'ไซต์งาน'}
                     {selectedDay.record.check_in_note ? ` • หมายเหตุ: "${selectedDay.record.check_in_note}"` : ''}
                   </>
@@ -487,25 +472,14 @@ export const MonthlyCalendarView: React.FC<MonthlyCalendarViewProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">เวลาเข้างาน</label>
-                  <input
-                    type="time"
-                    value={manualInTime}
-                    onChange={(e) => setManualInTime(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">เวลาออกงาน</label>
-                  <input
-                    type="time"
-                    value={manualOutTime}
-                    onChange={(e) => setManualOutTime(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-mono"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">เวลาเข้างาน</label>
+                <input
+                  type="time"
+                  value={manualInTime}
+                  onChange={(e) => setManualInTime(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-mono"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

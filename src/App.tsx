@@ -91,7 +91,7 @@ export function App() {
               }`}
             >
               <Clock className="w-4 h-4" />
-              <span>ลงเวลางาน (Clock In/Out)</span>
+              <span>ลงเวลาเข้างาน (Clock In)</span>
             </button>
 
             <button
