@@ -206,27 +206,52 @@ class AttendanceService {
         .order("date", { ascending: false });
 
       if (!error && cloudRecords) {
-        const mappedRecords: AttendanceRecord[] = cloudRecords.map((r: any) => ({
-          id: r.id,
-          user_id: r.user_id,
-          date: r.date,
-          check_in_time: r.check_in_time,
-          check_out_time: r.check_out_time || null,
-          work_type: (r.work_type as WorkType) || "office",
-          status: (r.status as AttendanceStatus) || "on_time",
-          check_in_note: r.check_in_note || "",
-          check_out_note: r.check_out_note || "",
-          location: r.location || "",
-          profile: this.employees.find((e) => e.id === r.user_id),
-        }));
+        // If cloud has no records yet but local device has records, migrate local to cloud!
+        if (cloudRecords.length === 0 && this.records.length > 0) {
+          console.log("🚀 Migrating local records to Supabase cloud...", this.records.length);
+          for (const rec of this.records) {
+            try {
+              await supabase.from("attendance_records").upsert({
+                id: rec.id,
+                user_id: rec.user_id,
+                date: rec.date,
+                check_in_time: rec.check_in_time,
+                check_out_time: rec.check_out_time,
+                work_type: rec.work_type,
+                status: rec.status,
+                check_in_note: rec.check_in_note,
+                check_out_note: rec.check_out_note,
+                location: rec.location,
+                user_name: rec.profile?.full_name || "",
+                department: rec.profile?.department || "",
+              });
+            } catch (migErr) {
+              console.warn("Record migration warning:", migErr);
+            }
+          }
+        } else {
+          const mappedRecords: AttendanceRecord[] = cloudRecords.map((r: any) => ({
+            id: r.id,
+            user_id: r.user_id,
+            date: r.date,
+            check_in_time: r.check_in_time,
+            check_out_time: r.check_out_time || null,
+            work_type: (r.work_type as WorkType) || "office",
+            status: (r.status as AttendanceStatus) || "on_time",
+            check_in_note: r.check_in_note || "",
+            check_out_note: r.check_out_note || "",
+            location: r.location || "",
+            profile: this.employees.find((e) => e.id === r.user_id),
+          }));
 
-        // Check if there are changes
-        const isChanged = JSON.stringify(mappedRecords) !== JSON.stringify(this.records);
-        if (isChanged) {
-          this.records = mappedRecords;
-          this.saveRecords();
-          if (notify) {
-            this.notifyListeners();
+          // Check if there are changes
+          const isChanged = JSON.stringify(mappedRecords) !== JSON.stringify(this.records);
+          if (isChanged) {
+            this.records = mappedRecords;
+            this.saveRecords();
+            if (notify) {
+              this.notifyListeners();
+            }
           }
         }
       }
@@ -246,22 +271,40 @@ class AttendanceService {
         .select("*")
         .order("id");
 
-      if (!error && cloudEmps && cloudEmps.length > 0) {
-        const mappedEmps: UserProfile[] = cloudEmps.map((e: any) => ({
-          id: e.id,
-          full_name: e.full_name,
-          department: e.department || "ฝ่ายปฏิบัติการ",
-          role: e.role || "employee",
-          email: e.email || "",
-          avatar_url: e.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(e.full_name)}`,
-        }));
+      if (!error && cloudEmps) {
+        if (cloudEmps.length === 0 && this.employees.length > 0) {
+          console.log("🚀 Migrating local employees to Supabase cloud...", this.employees.length);
+          for (const emp of this.employees) {
+            try {
+              await supabase.from("attendance_employees").upsert({
+                id: emp.id,
+                full_name: emp.full_name,
+                department: emp.department,
+                role: emp.role || "employee",
+                email: emp.email || "",
+                avatar_url: emp.avatar_url,
+              });
+            } catch (migErr) {
+              console.warn("Employee migration warning:", migErr);
+            }
+          }
+        } else if (cloudEmps.length > 0) {
+          const mappedEmps: UserProfile[] = cloudEmps.map((e: any) => ({
+            id: e.id,
+            full_name: e.full_name,
+            department: e.department || "ฝ่ายปฏิบัติการ",
+            role: e.role || "employee",
+            email: e.email || "",
+            avatar_url: e.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(e.full_name)}`,
+          }));
 
-        const isChanged = JSON.stringify(mappedEmps) !== JSON.stringify(this.employees);
-        if (isChanged) {
-          this.employees = mappedEmps;
-          this.saveEmployees();
-          if (notify) {
-            this.notifyListeners();
+          const isChanged = JSON.stringify(mappedEmps) !== JSON.stringify(this.employees);
+          if (isChanged) {
+            this.employees = mappedEmps;
+            this.saveEmployees();
+            if (notify) {
+              this.notifyListeners();
+            }
           }
         }
       }
