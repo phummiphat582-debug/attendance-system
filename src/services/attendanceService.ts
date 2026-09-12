@@ -8,7 +8,7 @@ import type {
   UserProfile,
   WorkType,
 } from "../types/attendance";
-import { sendCheckInNotification, sendCheckOutNotification } from "../lib/notifications";
+import { sendCheckInNotification } from "../lib/notifications";
 
 const DEFAULT_SETTINGS: SystemSettings = {
   company_name: "ProTech Attendance",
@@ -17,7 +17,7 @@ const DEFAULT_SETTINGS: SystemSettings = {
   notify_webhook_url: "",
   notify_provider: "discord",
   notify_on_checkin: true,
-  notify_on_checkout: true,
+  notify_on_checkout: false,
 };
 
 export const DEFAULT_EMPLOYEES: UserProfile[] = [
@@ -69,9 +69,13 @@ class AttendanceService {
   private employees: UserProfile[] = DEFAULT_EMPLOYEES;
   private currentProfile: UserProfile = DEFAULT_EMPLOYEES[0];
   private records: AttendanceRecord[] = [];
+  private isCloudConnected = false;
+  private listeners: Array<() => void> = [];
+  private pollInterval: any = null;
 
   constructor() {
     this.loadFromStorage();
+    this.initCloudSync();
   }
 
   private loadFromStorage() {
@@ -110,12 +114,6 @@ class AttendanceService {
       } else {
         this.records = [];
       }
-
-      // If no records exist or empty, pre-seed realistic records for Sept 2026
-      if (this.records.length === 0) {
-        this.records = this.generateSampleRecords();
-        this.saveRecords();
-      }
     } catch (e) {
       console.error("Failed to load local storage:", e);
       this.employees = DEFAULT_EMPLOYEES;
@@ -124,119 +122,184 @@ class AttendanceService {
     }
   }
 
-  private generateSampleRecords(): AttendanceRecord[] {
-    return [
-      {
-        id: "seed-1",
-        user_id: "emp-1",
-        date: "2026-09-01",
-        check_in_time: "2026-09-01T08:14:00+07:00",
-        check_out_time: "2026-09-01T17:35:00+07:00",
-        work_type: "office",
-        status: "on_time",
-        check_in_note: "เข้างานปกติ",
-        location: "สำนักงานใหญ่ ชั้น 3",
-      },
-      {
-        id: "seed-2",
-        user_id: "emp-1",
-        date: "2026-09-02",
-        check_in_time: "2026-09-02T08:22:00+07:00",
-        check_out_time: "2026-09-02T17:40:00+07:00",
-        work_type: "office",
-        status: "on_time",
-        check_in_note: "เข้างานปกติ",
-        location: "สำนักงานใหญ่ ชั้น 3",
-      },
-      {
-        id: "seed-3",
-        user_id: "emp-1",
-        date: "2026-09-03",
-        check_in_time: "2026-09-03T08:52:00+07:00",
-        check_out_time: "2026-09-03T18:05:00+07:00",
-        work_type: "onsite",
-        status: "late",
-        check_in_note: "เดินทางตรวจเช็คหน้างาน ไซต์ A",
-        location: "ไซต์งาน นิคมฯ บางกะดี",
-      },
-      {
-        id: "seed-4",
-        user_id: "emp-1",
-        date: "2026-09-04",
-        check_in_time: "2026-09-04T08:10:00+07:00",
-        check_out_time: "2026-09-04T17:15:00+07:00",
-        work_type: "wfh",
-        status: "on_time",
-        check_in_note: "ทำงาน Work From Home",
-        location: "บ้านพัก กทม.",
-      },
-      {
-        id: "seed-5",
-        user_id: "emp-1",
-        date: "2026-09-07",
-        check_in_time: "2026-09-07T08:25:00+07:00",
-        check_out_time: "2026-09-07T17:45:00+07:00",
-        work_type: "office",
-        status: "on_time",
-        check_in_note: "",
-        location: "สำนักงานใหญ่",
-      },
-      {
-        id: "seed-6",
-        user_id: "emp-1",
-        date: "2026-09-08",
-        check_in_time: "2026-09-08T08:18:00+07:00",
-        check_out_time: "2026-09-08T17:30:00+07:00",
-        work_type: "office",
-        status: "on_time",
-        check_in_note: "",
-        location: "สำนักงานใหญ่",
-      },
-      {
-        id: "seed-7",
-        user_id: "emp-1",
-        date: "2026-09-09",
-        check_in_time: "2026-09-09T08:48:00+07:00",
-        check_out_time: "2026-09-09T17:50:00+07:00",
-        work_type: "office",
-        status: "late",
-        check_in_note: "รถติดช่วงเช้า เส้นวิภาวดี",
-        location: "สำนักงานใหญ่",
-      },
-      {
-        id: "seed-8",
-        user_id: "emp-1",
-        date: "2026-09-10",
-        check_in_time: "2026-09-10T08:15:00+07:00",
-        check_out_time: "2026-09-10T17:35:00+07:00",
-        work_type: "onsite",
-        status: "on_time",
-        check_in_note: "ตรวจระบบลูกค้า บจก.ไทยซอฟท์",
-        location: "ไซต์งาน สาทร",
-      },
-      {
-        id: "seed-9",
-        user_id: "emp-2",
-        date: "2026-09-10",
-        check_in_time: "2026-09-10T08:20:00+07:00",
-        check_out_time: "2026-09-10T17:30:00+07:00",
-        work_type: "office",
-        status: "on_time",
-        check_in_note: "งานจัดซื้อและสรุปยอด",
-        location: "สำนักงานใหญ่",
-      },
-      {
-        id: "seed-10",
-        user_id: "emp-3",
-        date: "2026-09-10",
-        check_in_time: "2026-09-10T08:12:00+07:00",
-        check_out_time: "2026-09-10T17:30:00+07:00",
-        work_type: "office",
-        status: "on_time",
-        check_in_note: "",
-        location: "สำนักงานใหญ่",
-      },
-    ];
+  // --- CLOUD SYNC & REALTIME SUBSCRIPTION ---
+
+  public async initCloudSync() {
+    if (!isSupabaseConfigured) {
+      this.isCloudConnected = false;
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("attendance_records")
+        .select("id")
+        .limit(1);
+
+      if (error) {
+        console.warn("Supabase attendance_records not ready yet:", error.message);
+        this.isCloudConnected = false;
+        return;
+      }
+
+      // If successful, we have real-time cloud connection!
+      this.isCloudConnected = true;
+      console.log("🟢 Connected to Supabase Cloud Realtime Database successfully!");
+
+      // Initial fetch from cloud
+      await this.syncFromCloud();
+
+      // Subscribe to Realtime Changes
+      this.setupRealtimeSubscription();
+
+      // Polling fallback every 6 seconds to ensure absolute consistency
+      if (!this.pollInterval) {
+        this.pollInterval = setInterval(() => {
+          if (this.isCloudConnected) {
+            this.syncFromCloud(false);
+          }
+        }, 6000);
+      }
+    } catch (err) {
+      console.warn("Cloud check failed:", err);
+      this.isCloudConnected = false;
+    }
+  }
+
+  private setupRealtimeSubscription() {
+    if (!isSupabaseConfigured) return;
+
+    try {
+      supabase
+        .channel("attendance_realtime_channel")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "attendance_records" },
+          async (payload) => {
+            console.log("⚡ Supabase Realtime event received:", payload.eventType);
+            await this.syncFromCloud(true);
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "attendance_employees" },
+          async (payload) => {
+            console.log("⚡ Supabase Realtime employee event:", payload.eventType);
+            await this.syncEmployeesFromCloud(true);
+          }
+        )
+        .subscribe((status) => {
+          console.log("Supabase Realtime subscription status:", status);
+        });
+    } catch (err) {
+      console.error("Realtime subscription error:", err);
+    }
+  }
+
+  public async syncFromCloud(notify = false) {
+    if (!this.isCloudConnected || !isSupabaseConfigured) return;
+
+    try {
+      const { data: cloudRecords, error } = await supabase
+        .from("attendance_records")
+        .select("*")
+        .order("date", { ascending: false });
+
+      if (!error && cloudRecords) {
+        const mappedRecords: AttendanceRecord[] = cloudRecords.map((r: any) => ({
+          id: r.id,
+          user_id: r.user_id,
+          date: r.date,
+          check_in_time: r.check_in_time,
+          check_out_time: r.check_out_time || null,
+          work_type: (r.work_type as WorkType) || "office",
+          status: (r.status as AttendanceStatus) || "on_time",
+          check_in_note: r.check_in_note || "",
+          check_out_note: r.check_out_note || "",
+          location: r.location || "",
+          profile: this.employees.find((e) => e.id === r.user_id),
+        }));
+
+        // Check if there are changes
+        const isChanged = JSON.stringify(mappedRecords) !== JSON.stringify(this.records);
+        if (isChanged) {
+          this.records = mappedRecords;
+          this.saveRecords();
+          if (notify) {
+            this.notifyListeners();
+          }
+        }
+      }
+
+      await this.syncEmployeesFromCloud(notify);
+    } catch (err) {
+      console.error("Error syncing from cloud:", err);
+    }
+  }
+
+  public async syncEmployeesFromCloud(notify = false) {
+    if (!this.isCloudConnected || !isSupabaseConfigured) return;
+
+    try {
+      const { data: cloudEmps, error } = await supabase
+        .from("attendance_employees")
+        .select("*")
+        .order("id");
+
+      if (!error && cloudEmps && cloudEmps.length > 0) {
+        const mappedEmps: UserProfile[] = cloudEmps.map((e: any) => ({
+          id: e.id,
+          full_name: e.full_name,
+          department: e.department || "ฝ่ายปฏิบัติการ",
+          role: e.role || "employee",
+          email: e.email || "",
+          avatar_url: e.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(e.full_name)}`,
+        }));
+
+        const isChanged = JSON.stringify(mappedEmps) !== JSON.stringify(this.employees);
+        if (isChanged) {
+          this.employees = mappedEmps;
+          this.saveEmployees();
+          if (notify) {
+            this.notifyListeners();
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error syncing employees from cloud:", err);
+    }
+  }
+
+  public subscribeToUpdates(callback: () => void): () => void {
+    this.listeners.push(callback);
+    return () => {
+      this.listeners = this.listeners.filter((cb) => cb !== callback);
+    };
+  }
+
+  private notifyListeners() {
+    this.listeners.forEach((callback) => {
+      try {
+        callback();
+      } catch (err) {
+        console.error("Listener error:", err);
+      }
+    });
+  }
+
+  public isRealtimeConnected(): boolean {
+    return this.isCloudConnected;
+  }
+
+  public async recheckConnection(): Promise<{ connected: boolean; message: string }> {
+    await this.initCloudSync();
+    if (this.isCloudConnected) {
+      return { connected: true, message: "เชื่อมต่อฐานข้อมูลคลาวด์เรียลไทม์สำเร็จ ทุกเครื่องซิงค์ตรงกัน 100%" };
+    }
+    return {
+      connected: false,
+      message: "ยังไม่พบตาราง attendance_records ใน Supabase กรุณารันคำสั่ง SQL สร้างตาราง",
+    };
   }
 
   private saveRecords() {
@@ -251,13 +314,58 @@ class AttendanceService {
     } catch {}
   }
 
-  // --- EMPLOYEE MANAGEMENT (MULTI-USER) ---
+  // --- EMPLOYEE MANAGEMENT ---
 
   getEmployees(): UserProfile[] {
     return [...this.employees];
   }
 
-  addEmployee(fullName: string, department: string, email?: string, avatarUrl?: string): UserProfile {
+  getMockProfiles(): UserProfile[] {
+    return this.employees;
+  }
+
+  async getCurrentUser(): Promise<UserProfile | null> {
+    return this.currentProfile;
+  }
+
+  async updateUserProfile(profile: Partial<UserProfile>): Promise<UserProfile> {
+    this.currentProfile = { ...this.currentProfile, ...profile };
+    return this.currentProfile;
+  }
+
+  async signInWithGitHub(): Promise<{ error: any }> {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'github' });
+      return { error };
+    }
+    return { error: null };
+  }
+
+  async signInWithEmail(email: string, password: string): Promise<any> {
+    if (isSupabaseConfigured) {
+      return await supabase.auth.signInWithPassword({ email, password });
+    }
+    return { error: null };
+  }
+
+  async signUpWithEmail(email: string, password: string, fullName: string, role?: string): Promise<any> {
+    if (isSupabaseConfigured) {
+      return await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName, role: role || 'employee' } },
+      });
+    }
+    return { error: null };
+  }
+
+  async signOut(): Promise<void> {
+    if (isSupabaseConfigured) {
+      await supabase.auth.signOut();
+    }
+  }
+
+  async addEmployee(fullName: string, department: string, email?: string, avatarUrl?: string): Promise<UserProfile> {
     const newEmp: UserProfile = {
       id: "emp-" + Date.now(),
       email: email || "",
@@ -269,10 +377,26 @@ class AttendanceService {
     };
     this.employees.push(newEmp);
     this.saveEmployees();
+
+    if (this.isCloudConnected && isSupabaseConfigured) {
+      try {
+        await supabase.from("attendance_employees").upsert({
+          id: newEmp.id,
+          full_name: newEmp.full_name,
+          department: newEmp.department,
+          email: newEmp.email,
+          avatar_url: newEmp.avatar_url,
+        });
+      } catch (e) {
+        console.error("Cloud employee upsert error:", e);
+      }
+    }
+
+    this.notifyListeners();
     return newEmp;
   }
 
-  updateEmployee(id: string, fullName: string, department: string, avatarUrl?: string): UserProfile | null {
+  async updateEmployee(id: string, fullName: string, department: string, avatarUrl?: string): Promise<UserProfile | null> {
     const idx = this.employees.findIndex((e) => e.id === id);
     if (idx === -1) return null;
     this.employees[idx] = {
@@ -286,10 +410,26 @@ class AttendanceService {
       localStorage.setItem("protech_user_profile", JSON.stringify(this.currentProfile));
     }
     this.saveEmployees();
+
+    if (this.isCloudConnected && isSupabaseConfigured) {
+      try {
+        await supabase.from("attendance_employees").upsert({
+          id: this.employees[idx].id,
+          full_name: this.employees[idx].full_name,
+          department: this.employees[idx].department,
+          email: this.employees[idx].email,
+          avatar_url: this.employees[idx].avatar_url,
+        });
+      } catch (e) {
+        console.error("Cloud employee update error:", e);
+      }
+    }
+
+    this.notifyListeners();
     return this.employees[idx];
   }
 
-  updateEmployeePhoto(id: string, avatarUrl: string): UserProfile | null {
+  async updateEmployeePhoto(id: string, avatarUrl: string): Promise<UserProfile | null> {
     const idx = this.employees.findIndex((e) => e.id === id);
     if (idx === -1) return null;
     this.employees[idx] = {
@@ -301,143 +441,75 @@ class AttendanceService {
       localStorage.setItem("protech_user_profile", JSON.stringify(this.currentProfile));
     }
     this.saveEmployees();
+
+    if (this.isCloudConnected && isSupabaseConfigured) {
+      try {
+        await supabase.from("attendance_employees").upsert({
+          id: this.employees[idx].id,
+          full_name: this.employees[idx].full_name,
+          department: this.employees[idx].department,
+          avatar_url: avatarUrl,
+        });
+      } catch (e) {
+        console.error("Cloud photo update error:", e);
+      }
+    }
+
+    this.notifyListeners();
     return this.employees[idx];
   }
 
-  deleteEmployee(id: string): boolean {
-    if (this.employees.length <= 1) return false;
+  async deleteEmployee(id: string): Promise<boolean> {
+    const prevCount = this.employees.length;
     this.employees = this.employees.filter((e) => e.id !== id);
-    this.records = this.records.filter((r) => r.user_id !== id);
-    if (this.currentProfile.id === id) {
-      this.currentProfile = this.employees[0];
-      localStorage.setItem("protech_user_profile", JSON.stringify(this.currentProfile));
+    if (this.employees.length !== prevCount) {
+      this.saveEmployees();
+      if (this.currentProfile.id === id) {
+        this.currentProfile = this.employees[0] || DEFAULT_EMPLOYEES[0];
+        localStorage.setItem("protech_user_profile", JSON.stringify(this.currentProfile));
+      }
+      if (this.isCloudConnected && isSupabaseConfigured) {
+        try {
+          await supabase.from("attendance_employees").delete().eq("id", id);
+        } catch (e) {}
+      }
+      this.notifyListeners();
+      return true;
     }
-    this.saveEmployees();
-    this.saveRecords();
-    return true;
+    return false;
   }
 
-  setActiveEmployee(id: string): UserProfile {
+  getActiveEmployee(): UserProfile | null {
+    return this.currentProfile;
+  }
+
+  setActiveEmployee(id: string): UserProfile | null {
     const found = this.employees.find((e) => e.id === id);
     if (found) {
       this.currentProfile = found;
-      try {
-        localStorage.setItem("protech_user_profile", JSON.stringify(found));
-      } catch {}
+      localStorage.setItem("protech_user_profile", JSON.stringify(found));
+      return found;
     }
-    return this.currentProfile;
+    return null;
   }
 
-  getActiveEmployee(): UserProfile {
-    return this.currentProfile;
+  // --- SETTINGS ---
+
+  async getSettings(): Promise<SystemSettings> {
+    return this.settings;
   }
 
-  async getAllEmployeesTodayStatus(): Promise<
-    Array<{
-      employee: UserProfile;
-      record: AttendanceRecord | null;
-      statusText: string;
-    }>
-  > {
-    const today = getTodayDateString();
-    return this.employees.map((emp) => {
-      const rec = this.records.find((r) => r.user_id === emp.id && r.date === today) || null;
-      let statusText = "ยังไม่ได้ลงเวลา";
-      if (rec) {
-        const inTime = new Date(rec.check_in_time).toLocaleTimeString("th-TH", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        if (rec.check_out_time) {
-          const outTime = new Date(rec.check_out_time).toLocaleTimeString("th-TH", {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-          statusText = "เข้า " + inTime + " น. • ออก " + outTime + " น.";
-        } else {
-          statusText = "เข้างาน " + inTime + " น. (" + (rec.status === "on_time" ? "ตรงเวลา" : "สาย") + ")";
-        }
-      }
-      return {
-        employee: emp,
-        record: rec,
-        statusText,
-      };
-    });
-  }
-
-  // --- USER PROFILE & AUTH (COMPATIBILITY) ---
-
-  async signInWithGitHub(): Promise<{ error?: any }> {
-    if (!isSupabaseConfigured) return {};
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "github",
-      options: { redirectTo: window.location.origin },
-    });
-    return { error };
-  }
-
-  async signInWithEmail(email: string, password: string): Promise<{ user?: any; error?: any }> {
-    if (!isSupabaseConfigured) return { user: this.currentProfile };
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    return { user: data.user, error };
-  }
-
-  async signUpWithEmail(email: string, password: string, fullName: string, department: string): Promise<{ error?: any }> {
-    if (!isSupabaseConfigured) {
-      await this.updateUserProfile({ full_name: fullName, department });
-      return {};
-    }
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName, department } },
-    });
-    return { error };
-  }
-
-  getMockProfiles(): UserProfile[] {
-    return this.employees;
-  }
-
-  setActiveMockUser(userId: string) {
-    this.setActiveEmployee(userId);
-  }
-
-  async getCurrentUser(): Promise<UserProfile | null> {
-    if (isSupabaseConfigured) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-        if (profile) return profile as UserProfile;
-      }
-    }
-    return this.currentProfile;
-  }
-
-  async updateUserProfile(profile: Partial<UserProfile>): Promise<UserProfile> {
-    this.currentProfile = { ...this.currentProfile, ...profile };
+  async updateSettings(newSettings: Partial<SystemSettings>): Promise<{ success: boolean; settings: SystemSettings; error?: string }> {
+    this.settings = { ...this.settings, ...newSettings };
     try {
-      localStorage.setItem("protech_user_profile", JSON.stringify(this.currentProfile));
-    } catch {}
-
-    const idx = this.employees.findIndex((e) => e.id === this.currentProfile.id);
-    if (idx !== -1) {
-      this.employees[idx] = { ...this.employees[idx], ...profile };
-      this.saveEmployees();
-    }
-    return this.currentProfile;
-  }
-
-  async signOut(): Promise<void> {
-    if (isSupabaseConfigured) {
-      await supabase.auth.signOut();
+      localStorage.setItem("attendance_settings", JSON.stringify(this.settings));
+      return { success: true, settings: this.settings };
+    } catch (e: any) {
+      return { success: false, settings: this.settings, error: e?.message };
     }
   }
 
-  // --- ATTENDANCE ACTIONS ---
+  // --- ATTENDANCE ACTIONS (REALTIME & PERSISTENT) ---
 
   async getTodayAttendance(userId: string): Promise<AttendanceRecord | null> {
     const today = getTodayDateString();
@@ -482,10 +554,38 @@ class AttendanceService {
       profile: emp,
     };
 
+    // Immediate local insertion
     this.records.unshift(newRecord);
     this.saveRecords();
 
+    // Broadcast to Supabase Cloud Database (Instantly syncs to ALL devices)
+    if (this.isCloudConnected && isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from("attendance_records").upsert({
+          id: newRecord.id,
+          user_id: newRecord.user_id,
+          date: newRecord.date,
+          check_in_time: newRecord.check_in_time,
+          check_out_time: null,
+          work_type: newRecord.work_type,
+          status: newRecord.status,
+          check_in_note: newRecord.check_in_note,
+          location: newRecord.location,
+          user_name: emp.full_name,
+          department: emp.department,
+        });
+        if (error) {
+          console.error("Supabase cloud checkIn error:", error);
+        } else {
+          console.log("☁️ Record saved and broadcasted to Supabase Realtime!");
+        }
+      } catch (e) {
+        console.error("Supabase upsert failed:", e);
+      }
+    }
+
     sendCheckInNotification(newRecord, emp, settings).catch(console.error);
+    this.notifyListeners();
 
     return { record: newRecord };
   }
@@ -496,31 +596,50 @@ class AttendanceService {
     customTime?: string;
   }): Promise<{ record: AttendanceRecord | null; error?: string }> {
     const now = params.customTime ? new Date(params.customTime) : new Date();
-    const settings = await this.getSettings();
+    const idx = this.records.findIndex((r) => r.id === params.recordId);
+    if (idx === -1) return { record: null, error: "Record not found" };
 
-    const index = this.records.findIndex((r) => r.id === params.recordId);
-    if (index === -1) {
-      return { record: null, error: "ไม่พบข้อมูลบันทึกเวลาเข้างาน" };
-    }
-
-    this.records[index] = {
-      ...this.records[index],
+    this.records[idx] = {
+      ...this.records[idx],
       check_out_time: now.toISOString(),
-      check_out_note: params.note !== undefined ? params.note : this.records[index].check_out_note,
+      check_out_note: params.note || "",
     };
     this.saveRecords();
 
-    const emp = this.employees.find((e) => e.id === this.records[index].user_id) || this.currentProfile;
-    sendCheckOutNotification(this.records[index], emp, settings).catch(console.error);
+    if (this.isCloudConnected && isSupabaseConfigured) {
+      try {
+        await supabase
+          .from("attendance_records")
+          .update({
+            check_out_time: this.records[idx].check_out_time,
+            check_out_note: this.records[idx].check_out_note,
+          })
+          .eq("id", params.recordId);
+      } catch (e) {
+        console.error("Cloud checkOut error:", e);
+      }
+    }
 
-    return { record: this.records[index] };
+    this.notifyListeners();
+    return { record: this.records[idx] };
   }
 
-  deleteRecord(recordId: string): boolean {
+  async deleteRecord(recordId: string): Promise<boolean> {
     const prevCount = this.records.length;
     this.records = this.records.filter((r) => r.id !== recordId);
     if (this.records.length !== prevCount) {
       this.saveRecords();
+
+      if (this.isCloudConnected && isSupabaseConfigured) {
+        try {
+          await supabase.from("attendance_records").delete().eq("id", recordId);
+          console.log("☁️ Record deleted from cloud:", recordId);
+        } catch (e) {
+          console.error("Cloud delete error:", e);
+        }
+      }
+
+      this.notifyListeners();
       return true;
     }
     return false;
@@ -530,17 +649,13 @@ class AttendanceService {
     userId: string;
     date: string;
     checkInTime: string; // HH:mm
-    checkOutTime?: string; // HH:mm
     workType: WorkType;
     status: AttendanceStatus;
     note?: string;
     location?: string;
   }): Promise<{ success: boolean; error?: string }> {
     const existingIndex = this.records.findIndex((r) => r.user_id === params.userId && r.date === params.date);
-
     const checkInIso = params.date + "T" + params.checkInTime + ":00+07:00";
-    const checkOutIso = params.checkOutTime ? params.date + "T" + params.checkOutTime + ":00+07:00" : null;
-
     const emp = this.employees.find((e) => e.id === params.userId) || this.currentProfile;
 
     const newRecord: AttendanceRecord = {
@@ -548,7 +663,7 @@ class AttendanceService {
       user_id: params.userId,
       date: params.date,
       check_in_time: checkInIso,
-      check_out_time: checkOutIso,
+      check_out_time: null,
       work_type: params.workType,
       status: params.status,
       check_in_note: params.note || "",
@@ -562,6 +677,28 @@ class AttendanceService {
       this.records.unshift(newRecord);
     }
     this.saveRecords();
+
+    if (this.isCloudConnected && isSupabaseConfigured) {
+      try {
+        await supabase.from("attendance_records").upsert({
+          id: newRecord.id,
+          user_id: newRecord.user_id,
+          date: newRecord.date,
+          check_in_time: newRecord.check_in_time,
+          check_out_time: null,
+          work_type: newRecord.work_type,
+          status: newRecord.status,
+          check_in_note: newRecord.check_in_note,
+          location: newRecord.location,
+          user_name: emp.full_name,
+          department: emp.department,
+        });
+      } catch (e) {
+        console.error("Cloud manual record save error:", e);
+      }
+    }
+
+    this.notifyListeners();
     return { success: true };
   }
 
@@ -571,7 +708,91 @@ class AttendanceService {
       .sort((a, b) => b.date.localeCompare(a.date));
   }
 
-  // --- FULL MONTHLY CALENDAR DATA ---
+  async getTodayTeamAttendance(): Promise<{ records: AttendanceRecord[]; summary: any }> {
+    const today = getTodayDateString();
+    const records = this.records.filter((r) => r.date === today);
+    const totalStaff = this.employees.length;
+    const checkedIn = records.length;
+    const onTime = records.filter((r) => r.status === 'on_time').length;
+    const late = records.filter((r) => r.status === 'late').length;
+    const checkedOut = records.filter((r) => !!r.check_out_time).length;
+    return {
+      records,
+      summary: {
+        totalStaff,
+        checkedIn,
+        onTime,
+        late,
+        checkedOut,
+        onTimeRate: checkedIn > 0 ? Math.round((onTime / checkedIn) * 100) : 0,
+      },
+    };
+  }
+
+  subscribeToAttendance(callback: (newRecord: any) => void): () => void {
+    return this.subscribeToUpdates(() => {
+      if (this.records.length > 0) callback(this.records[0]);
+    });
+  }
+
+  async getMember30DayAttendance(memberId: string): Promise<any> {
+    const days: any[] = [];
+    const now = new Date();
+    const dayNames = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+    let onTimeDays = 0;
+    let lateDays = 0;
+    let absentDays = 0;
+    let wfhDays = 0;
+    let officeDays = 0;
+    let onsiteDays = 0;
+
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const dateStr = getLocalDateString(d);
+      const dayOfWeek = d.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const isToday = i === 0;
+      const rec = this.records.find((r) => r.user_id === memberId && r.date === dateStr);
+
+      let status: any = isWeekend ? "weekend" : "absent";
+      if (rec) {
+        status = rec.status === "on_time" ? "on_time" : "late";
+        if (rec.status === "on_time") onTimeDays++;
+        else lateDays++;
+        if (rec.work_type === "office") officeDays++;
+        else if (rec.work_type === "wfh") wfhDays++;
+        else if (rec.work_type === "onsite") onsiteDays++;
+      } else if (!isWeekend) {
+        absentDays++;
+      }
+
+      days.push({
+        date: dateStr,
+        dayOfWeek,
+        dayName: dayNames[dayOfWeek],
+        formattedDate: `${d.getDate()}/${d.getMonth() + 1}`,
+        isWeekend,
+        isToday,
+        record: rec,
+        status,
+      });
+    }
+
+    return {
+      days,
+      stats: {
+        totalWorkDays: onTimeDays + lateDays + absentDays,
+        onTimeDays,
+        lateDays,
+        absentDays,
+        wfhDays,
+        officeDays,
+        onsiteDays,
+      },
+    };
+  }
+
+  // --- CALENDAR & STATS ---
 
   async getMonthlyCalendarData(
     userId: string,
@@ -602,7 +823,6 @@ class AttendanceService {
     let wfhDays = 0;
     let officeDays = 0;
     let onsiteDays = 0;
-    let totalHours = 0;
 
     for (let day = 1; day <= totalDaysInMonth; day++) {
       const dateStr = prefix + "-" + String(day).padStart(2, "0");
@@ -627,15 +847,6 @@ class AttendanceService {
         if (record.work_type === "office") officeDays++;
         else if (record.work_type === "wfh") wfhDays++;
         else if (record.work_type === "onsite") onsiteDays++;
-
-        if (record.check_in_time && record.check_out_time) {
-          const start = new Date(record.check_in_time).getTime();
-          const end = new Date(record.check_out_time).getTime();
-          const diffHours = (end - start) / (1000 * 60 * 60);
-          if (diffHours > 0) totalHours += diffHours;
-        } else {
-          totalHours += 8; // standard work day default
-        }
       } else if (isWeekend) {
         status = "weekend";
       } else if (isToday) {
@@ -662,81 +873,50 @@ class AttendanceService {
       });
     }
 
-    const attendanceRate = totalWorkDays > 0 ? Math.round((attendedDays / totalWorkDays) * 100) : 100;
-    const onTimeRate = attendedDays > 0 ? Math.round((onTimeDays / attendedDays) * 100) : 100;
+    const attendanceRate = totalWorkDays > 0 ? Math.round((attendedDays / totalWorkDays) * 100) : 0;
+    const onTimeRate = attendedDays > 0 ? Math.round((onTimeDays / attendedDays) * 100) : 0;
 
-    return {
-      days,
-      stats: {
-        totalWorkDays,
-        attendedDays,
-        onTimeDays,
-        lateDays,
-        absentDays,
-        wfhDays,
-        officeDays,
-        onsiteDays,
-        attendanceRate,
-        onTimeRate,
-        totalHours: Math.round(totalHours * 10) / 10,
-      },
+    const stats: MonthlyStats = {
+      totalWorkDays,
+      attendedDays,
+      onTimeDays,
+      lateDays,
+      absentDays,
+      attendanceRate,
+      onTimeRate,
+      wfhDays,
+      officeDays,
+      onsiteDays,
+      totalHours: attendedDays * 8,
     };
+
+    return { days, stats };
   }
 
-  // --- BACKWARD COMPATIBLE 30-DAY CALL ---
-
-  async getMember30DayAttendance(userId: string) {
-    const now = new Date();
-    const result = await this.getMonthlyCalendarData(userId, now.getFullYear(), now.getMonth() + 1);
-    return {
-      days: result.days.map((d) => ({
-        date: d.date,
-        dayOfWeek: d.dayOfWeek,
-        dayName: d.dayName,
-        formattedDate: d.dayNumber + " " + new Date(d.date).toLocaleDateString("th-TH", { month: "short" }),
-        isWeekend: d.isWeekend,
-        isToday: d.isToday,
-        record: d.record,
-        status: d.status,
-      })),
-      stats: result.stats,
-    };
-  }
-
-  // --- SETTINGS ---
-
-  async getSettings(): Promise<SystemSettings> {
-    return this.settings;
-  }
-
-  async updateSettings(settings: SystemSettings): Promise<{ success: boolean; error?: string }> {
-    this.settings = { ...settings };
-    try {
-      localStorage.setItem("attendance_settings", JSON.stringify(settings));
-    } catch {}
-    return { success: true };
-  }
-
-  async getTodayTeamAttendance() {
+  async getAllEmployeesTodayStatus(): Promise<
+    Array<{
+      employee: UserProfile;
+      record: AttendanceRecord | null;
+      statusText: string;
+    }>
+  > {
     const today = getTodayDateString();
-    const records = this.records.filter((r) => r.date === today);
-    const checkedIn = records.length;
-    const late = records.filter((r) => r.status === "late").length;
-    const onTime = records.filter((r) => r.status === "on_time").length;
-    return {
-      records,
-      summary: {
-        totalMembers: this.employees.length,
-        checkedIn,
-        pending: Math.max(0, this.employees.length - checkedIn),
-        late,
-        onTime,
-      },
-    };
-  }
-
-  subscribeToAttendance(_onNewRecord: (record: AttendanceRecord) => void) {
-    return () => {};
+    return this.employees.map((employee) => {
+      const rec = this.records.find((r) => r.user_id === employee.id && r.date === today) || null;
+      let statusText = "ยังไม่ลงเวลา";
+      if (rec) {
+        const t = new Date(rec.check_in_time).toLocaleTimeString("th-TH", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        statusText = `เข้างาน ${t} น. (${rec.status === "on_time" ? "ตรงเวลา" : "สาย"})`;
+      }
+      return {
+        employee,
+        record: rec,
+        statusText,
+      };
+    });
   }
 }
 

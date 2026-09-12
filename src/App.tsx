@@ -4,6 +4,7 @@ import { QuickClockInOut } from './components/QuickClockInOut';
 import { MonthlyCalendarView } from './components/MonthlyCalendarView';
 import { EmployeeManagerModal } from './components/EmployeeManagerModal';
 import { SettingsModal } from './components/SettingsModal';
+import { CloudSyncModal } from './components/CloudSyncModal';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { attendanceService } from './services/attendanceService';
 import type { SystemSettings, UserProfile } from './types/attendance';
@@ -25,6 +26,8 @@ export function App() {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
+  const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false);
+  const [isCloudConnected, setIsCloudConnected] = useState(() => attendanceService.isRealtimeConnected());
   const [loading, setLoading] = useState(true);
 
   // Load initial data
@@ -49,6 +52,11 @@ export function App() {
 
   useEffect(() => {
     loadData();
+    const unsubscribe = attendanceService.subscribeToUpdates(() => {
+      handleEmployeesUpdated();
+      setIsCloudConnected(attendanceService.isRealtimeConnected());
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleSelectEmployee = (emp: UserProfile) => {
@@ -61,6 +69,7 @@ export function App() {
     setEmployees(updatedList);
     const currentActive = attendanceService.getActiveEmployee();
     setActiveEmployee(currentActive || updatedList[0] || null);
+    setIsCloudConnected(attendanceService.isRealtimeConnected());
   };
 
   const handleViewCalendar = (emp: UserProfile) => {
@@ -74,10 +83,32 @@ export function App() {
       <Header
         currentUser={activeEmployee}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenCloudSync={() => setIsCloudSyncOpen(true)}
+        isCloudConnected={isCloudConnected}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
+        {/* Realtime Cloud Sync Banner if not connected */}
+        {!isCloudConnected && (
+          <div className="bg-amber-50/90 border border-amber-200 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-950 shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse flex-shrink-0"></span>
+              <span>
+                <strong>ต้องการให้ทุกเครื่องเห็นข้อมูลตรงกันแบบเรียลไทม์?</strong>{' '}
+                <span className="text-amber-800 hidden md:inline">เปิดใช้งานฐานข้อมูล Supabase เพื่อแชร์ข้อมูลออนไลน์ร่วมกันสดๆ</span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsCloudSyncOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold transition flex-shrink-0 cursor-pointer shadow-xs"
+            >
+              ⚡ เปิดใช้งานคลาวด์เรียลไทม์ (10 วินาที)
+            </button>
+          </div>
+        )}
+
         {/* Navigation Tabs (Modern Segmented Pill) */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-2 rounded-2xl border border-slate-200/90 shadow-xs">
           <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
@@ -177,6 +208,15 @@ export function App() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onSaved={(newSettings) => setSettings(newSettings)}
+      />
+
+      <CloudSyncModal
+        isOpen={isCloudSyncOpen}
+        onClose={() => setIsCloudSyncOpen(false)}
+        onStatusChanged={() => {
+          handleEmployeesUpdated();
+          setIsCloudConnected(attendanceService.isRealtimeConnected());
+        }}
       />
 
       {/* PWA Install Floating Banner & Guide */}

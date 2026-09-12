@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Download } from 'lucide-react';
+import { Settings, Download, Cloud } from 'lucide-react';
 import type { UserProfile } from '../types/attendance';
 
 interface HeaderProps {
   currentUser: UserProfile | null;
   onOpenSettings: () => void;
+  onOpenCloudSync?: () => void;
+  isCloudConnected?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentUser,
   onOpenSettings,
+  onOpenCloudSync,
+  isCloudConnected = false,
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [installPrompt, setInstallPrompt] = useState<any>(null);
@@ -98,6 +102,23 @@ export const Header: React.FC<HeaderProps> = ({
             <Download className="w-3.5 h-3.5" />
             <span>ติดตั้งแอป</span>
           </button>
+
+          {/* Cloud Sync Status Pill */}
+          {onOpenCloudSync && (
+            <button
+              type="button"
+              onClick={onOpenCloudSync}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer border shadow-2xs ${
+                isCloudConnected
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                  : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+              }`}
+              title="สถานะฐานข้อมูลเรียลไทม์ (คลิกเพื่อดูรายละเอียด)"
+            >
+              <Cloud className="w-3.5 h-3.5" />
+              <span>{isCloudConnected ? '🟢 คลาวด์เรียลไทม์' : '🟠 ฐานข้อมูลกลาง'}</span>
+            </button>
+          )}
 
           {/* Settings Modal Shortcut (Supervisor Webhook setup) */}
           <button

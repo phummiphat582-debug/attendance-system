@@ -35,6 +35,9 @@ jobs:
 
       - name: Build Application
         run: bun run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://hrglhnddjbxxmlhbeysm.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'sb_publishable_wGkBqfguJmgMIArQWRVdtA_2Vcsv_Je' }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
