@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const defaultUrl = 'https://hrglhnddjbxxmlhbeysm.supabase.co';
-const defaultKey = 'sb_publishable_wGkBqfguJmgMIArQWRVdtA_2Vcsv_Je';
+const defaultUrl = 'https://rimwhvvashgcaepyavjq.supabase.co';
+const defaultKey = 'sb_publishable_RWMzxzmGoysKRAQdh_yOoA_ZliItUIj';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || defaultUrl;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || defaultKey;

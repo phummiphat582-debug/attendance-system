@@ -199,7 +199,7 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({ isOpen, onClose,
           {!isConnected ? (
             <>
               <a
-                href="https://supabase.com/dashboard/project/hrglhnddjbxxmlhbeysm/sql/new"
+                href="https://supabase.com/dashboard/project/rimwhvvashgcaepyavjq/sql/new"
                 target="_blank"
                 rel="noreferrer"
                 className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition"

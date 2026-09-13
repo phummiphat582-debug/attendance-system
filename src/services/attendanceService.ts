@@ -64,6 +64,15 @@ export const getLocalDateString = (d: Date = new Date()): string => {
 
 const getTodayDateString = () => getLocalDateString(new Date());
 
+const toSafeTimestamp = (val: string | undefined | null, date: string): string | null => {
+  if (!val) return null;
+  const trimmed = String(val).trim();
+  if (!trimmed) return null;
+  if (trimmed.includes('T')) return trimmed;
+  const timePart = trimmed.length === 5 ? `${trimmed}:00` : trimmed;
+  return `${date}T${timePart}+07:00`;
+};
+
 class AttendanceService {
   private settings: SystemSettings = DEFAULT_SETTINGS;
   private employees: UserProfile[] = DEFAULT_EMPLOYEES;
@@ -211,23 +220,29 @@ class AttendanceService {
           console.log("🚀 Migrating local records to Supabase cloud...", this.records.length);
           for (const rec of this.records) {
             try {
+              const safeIn = toSafeTimestamp(rec.check_in_time, rec.date) || new Date().toISOString();
+              const safeOut = toSafeTimestamp(rec.check_out_time, rec.date);
               await supabase.from("attendance_records").upsert({
                 id: rec.id,
                 user_id: rec.user_id,
                 date: rec.date,
-                check_in_time: rec.check_in_time,
-                check_out_time: rec.check_out_time,
+                check_in_time: safeIn,
+                check_out_time: safeOut,
                 work_type: rec.work_type,
                 status: rec.status,
-                check_in_note: rec.check_in_note,
-                check_out_note: rec.check_out_note,
-                location: rec.location,
+                check_in_note: rec.check_in_note || "",
+                check_out_note: rec.check_out_note || "",
+                location: rec.location || "",
                 user_name: rec.profile?.full_name || "",
                 department: rec.profile?.department || "",
               });
             } catch (migErr) {
               console.warn("Record migration warning:", migErr);
             }
+          }
+          // After migration, notify to ensure consistency
+          if (notify) {
+            this.notifyListeners();
           }
         } else {
           const mappedRecords: AttendanceRecord[] = cloudRecords.map((r: any) => ({
