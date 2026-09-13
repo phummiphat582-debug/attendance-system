@@ -65,7 +65,7 @@ CREATE INDEX IF NOT EXISTS idx_attendance_status ON public.attendance_records(st
 -- 5. SYSTEM & NOTIFICATION SETTINGS TABLE
 CREATE TABLE IF NOT EXISTS public.company_settings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    company_name TEXT DEFAULT 'ทีมงานของเรา' NOT NULL,
+    company_name TEXT DEFAULT 'ทีมงานของ84เรา' NOT NULL,
     work_start_time TIME DEFAULT '09:00:00' NOT NULL,
     late_threshold_minutes INTEGER DEFAULT 15 NOT NULL,
     notify_webhook_url TEXT DEFAULT '',
